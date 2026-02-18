@@ -5,6 +5,9 @@ on:
     - cron: '0 5 * * 5'  # UTC 05:00 = 北京时间 13:00 每周五
   workflow_dispatch:       # 支持手动触发
 
+permissions:
+  contents: write
+
 jobs:
   generate:
     runs-on: ubuntu-latest

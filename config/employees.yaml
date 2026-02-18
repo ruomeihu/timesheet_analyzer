@@ -1,0 +1,153 @@
+# ============================================
+# 员工配置文件
+# ============================================
+# 修改说明：
+# - name_cn: 中文名（用于报告显示）
+# - name_en: 英文名（必须与 Notion 中的成员名称一致）
+# - type: 全职 / 兼职 / 按需
+# - standard_hours: 周标准工时（按需员工可设为 null）
+# - department: 部门
+# - position: 职位名称
+# - responsibilities: 岗位职责列表
+# - leaves: 请假记录（可选）
+# ============================================
+
+# 部门信息
+department:
+  name: "合作发展部"
+  responsibilities: "研究院的行政运营、销售支持、战略事宜和一部分项目的交付"
+
+# 默认配置
+defaults:
+  full_time_hours: 40      # 全职周标准工时
+  part_time_hours: 24      # 兼职周标准工时
+  daily_hours: 8           # 日标准工时
+
+  # 工时达成率阈值
+  thresholds:
+    overload: 1.2          # 超过 120% 视为超负荷
+    underload: 0.7         # 低于 70% 视为负荷偏低
+
+  # AI 分析配置
+  ai_analysis:
+    enabled: true
+    model: "claude-sonnet-4-20250514"
+    max_tokens: 8192
+    temperature: 0.3
+
+# 项目分类参考（辅助 AI 分析）
+project_categories:
+  strategic:  # 战略项目
+    keywords:
+      - "战略"
+      - "重点"
+      - "核心"
+      - "新业务"
+      - "产品研发"
+  operational:  # 维持性事务
+    keywords:
+      - "日常运营"
+      - "行政管理"
+      - "团队管理"
+      - "例行"
+  support:  # 支持工作
+    keywords:
+      - "跨部门"
+      - "支持"
+      - "协助"
+
+# 员工列表
+employees:
+  # === 全职员工 ===
+  - name_cn: "胡若玫"
+    name_en: "Iris Hu"
+    type: "全职"
+    standard_hours: 40
+    department: "数据平台部"
+    position: "副院长&秘书长"
+    responsibilities:
+      - "团队管理"
+      - "资源协调"
+      - "业务拓展"
+      - "方案策划"
+      - "战略研究"
+    # 请假示例（取消注释并修改日期即可使用）
+    # leaves:
+    #   - start: "2025-10-01"
+    #     end: "2025-10-07"
+    #     type: "年假"
+
+  - name_cn: "魏超"
+    name_en: "Weichao"
+    type: "全职"
+    standard_hours: 40
+    department: "数据平台部"
+    position: "项目经理"
+    responsibilities:
+      - "项目管理"
+      - "客户服务"
+      - "商务支持"
+      - "运营管理支持"
+
+  - name_cn: "张治宇"
+    name_en: "Zander"
+    type: "全职"
+    standard_hours: 40
+    department: "数据平台部"
+    position: "数据开发工程师"
+    responsibilities:
+      - "数据平台开发"
+      - "数据清洗"
+      - "数据治理"
+      - "数据技术"
+    onboard_date: "2026-02-02"  # 入职日期
+
+  - name_cn: "王晓书"
+    name_en: "xiaoshu"
+    type: "全职"
+    standard_hours: 40
+    department: "数据平台部"
+    position: "数据开发工程师"
+    responsibilities:
+      - "数据平台开发"
+      - "数据产品研究"
+      - "数据架构设计"
+      - "数据技术"
+    onboard_date: "2026-02-04"  # 入职日期
+
+  # === 兼职员工 ===
+  - name_cn: "聂鑫"
+    name_en: "xin nie"
+    type: "兼职"
+    standard_hours: 24
+    department: "数据平台部"
+    position: "行业分析师（兼职）"
+    responsibilities:
+      - "行业及项目研究"
+      - "技术调研"
+      - "咨询项目交付"
+
+  # === 按需员工 ===
+  - name_cn: "李倩"
+    name_en: "qian li"
+    type: "按需"
+    standard_hours: null   # 按需员工没有固定工时
+    department: "商务合作部"
+    position: "内容运营经理（兼职）"
+    responsibilities:
+      - "微信公众号运营"
+      - "平面设计"
+
+# ============================================
+# 如何添加新员工？
+# 复制下面的模板，填写信息后添加到 employees 列表中
+# ============================================
+# - name_cn: "张三"
+#   name_en: "San Zhang"
+#   type: "全职"          # 全职/兼职/按需
+#   standard_hours: 40    # 按需员工填 null
+#   department: "合作发展部"
+#   position: "职位名称"
+#   responsibilities:
+#     - "职责1"
+#     - "职责2"

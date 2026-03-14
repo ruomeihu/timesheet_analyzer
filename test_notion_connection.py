@@ -8,6 +8,12 @@
 import os
 import sys
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 def test_connection():
     """测试 Notion API 连接"""
     

@@ -17,6 +17,12 @@
 import os
 import sys
 import argparse
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart

@@ -89,7 +89,10 @@ with st.sidebar:
 
     if data_source == "Notion 直连":
         # Token 优先从 Streamlit secrets 读取，其次环境变量
-        notion_token = st.secrets.get("NOTION_API_TOKEN", "") if hasattr(st, 'secrets') else ""
+        try:
+            notion_token = st.secrets.get("NOTION_API_TOKEN", "") if hasattr(st, 'secrets') else ""
+        except Exception:
+            notion_token = ""
         if not notion_token:
             notion_token = os.getenv("NOTION_API_TOKEN", "")
         if not notion_token:
@@ -137,7 +140,10 @@ with st.sidebar:
         ai_enabled = False
     else:
         # 优先从 Streamlit secrets，其次环境变量
-        api_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, 'secrets') else ""
+        try:
+            api_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, 'secrets') else ""
+        except Exception:
+            api_key = ""
         if not api_key:
             api_key = os.getenv("ANTHROPIC_API_KEY")
 

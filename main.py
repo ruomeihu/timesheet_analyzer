@@ -11,6 +11,12 @@ from pathlib import Path
 from datetime import date
 import sys
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent))
 

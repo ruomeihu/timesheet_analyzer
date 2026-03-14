@@ -6,6 +6,7 @@
 """
 import streamlit as st
 import pandas as pd
+import altair as alt
 from datetime import date, datetime, timedelta
 from pathlib import Path
 import sys
@@ -21,6 +22,31 @@ from src.analyzer import TimesheetAnalyzer
 from src.visualizer import create_visualizations, create_single_chart
 from src.report_generator import generate_markdown_report
 from config import get_employees_config
+
+# ============================================
+# Altair 主题
+# ============================================
+CHART_COLORS = ['#4F46E5', '#7C3AED', '#06B6D4', '#059669', '#D97706',
+                '#EC4899', '#F43F5E', '#8B5CF6', '#14B8A6', '#F59E0B']
+
+def _indigo_theme():
+    return {
+        'config': {
+            'background': 'transparent',
+            'title': {'color': '#1E293B', 'fontSize': 15, 'fontWeight': 600},
+            'axis': {
+                'labelColor': '#64748B', 'titleColor': '#1E293B',
+                'gridColor': '#E2E8F0', 'domainColor': '#CBD5E1',
+                'labelFontSize': 12, 'titleFontSize': 13,
+            },
+            'legend': {'labelColor': '#64748B', 'titleColor': '#1E293B'},
+            'range': {'category': CHART_COLORS},
+            'view': {'stroke': 'transparent'},
+        }
+    }
+
+alt.themes.register('indigo', _indigo_theme)
+alt.themes.enable('indigo')
 
 # 尝试导入 AI 分析模块
 try:
@@ -51,32 +77,156 @@ st.set_page_config(
 # ============================================
 st.markdown("""
 <style>
+    /* Header */
     .main-header {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #1f77b4;
-        margin-bottom: 1rem;
+        font-size: 2.2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #4F46E5, #7C3AED);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
     }
-    .metric-card {
-        background-color: #f0f2f6;
+    .main-subtitle {
+        color: #64748B;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Metric cards */
+    [data-testid="stMetric"] {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        transition: box-shadow 0.2s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        box-shadow: 0 4px 12px rgba(79,70,229,0.1);
+    }
+    [data-testid="stMetricLabel"] {
+        color: #64748B;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    [data-testid="stMetricValue"] {
+        color: #1E293B;
+        font-weight: 700;
+    }
+
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px;
+        background: #F1F5F9;
         border-radius: 10px;
-        padding: 1rem;
-        text-align: center;
+        padding: 4px;
     }
-    .status-normal { color: #27ae60; }
-    .status-warning { color: #e74c3c; }
-    .status-low { color: #f39c12; }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    .stTabs [aria-selected="true"] {
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: #F8FAFC;
+        border-right: 1px solid #E2E8F0;
+    }
+    [data-testid="stSidebar"] .stRadio > label {
+        font-weight: 500;
+    }
+
+    /* DataFrames */
+    [data-testid="stDataFrame"] {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    /* Buttons */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #4F46E5, #7C3AED);
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.5rem 1.5rem;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stButton > button[kind="primary"]:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(79,70,229,0.3);
+    }
+
+    /* Expander */
+    .streamlit-expanderHeader {
+        font-weight: 600;
+        color: #334155;
+    }
+
+    /* Divider */
+    [data-testid="stHorizontalBlock"] {
+        gap: 1rem;
+    }
+
+    /* Status colors */
+    .status-normal { color: #059669; }
+    .status-warning { color: #DC2626; }
+    .status-low { color: #D97706; }
+
+    /* Alert styling */
+    [data-testid="stAlert"] {
+        border-radius: 10px;
+    }
+
+    /* Altair chart card */
+    [data-testid="stVegaLiteChart"] {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    /* Footer */
+    .footer-text {
+        color: #94A3B8;
+        font-size: 0.8rem;
+        text-align: center;
+        padding: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================
-# 侧边栏
+# Session State 初始化
+# ============================================
+if 'analysis_started' not in st.session_state:
+    st.session_state.analysis_started = False
+if 'loaded_data' not in st.session_state:
+    st.session_state.loaded_data = None
+if 'loaded_meta' not in st.session_state:
+    st.session_state.loaded_meta = None
+if 'analysis_params' not in st.session_state:
+    st.session_state.analysis_params = {}
+
+# ============================================
+# 侧边栏：引导式操作流程
 # ============================================
 with st.sidebar:
-    st.header("⚙️ 设置")
+    st.markdown("### ⚙️ 分析设置")
 
-    # 数据源选择
-    st.subheader("📁 数据来源")
+    uploaded_file = None
+    notion_token = None
+    selected_report = None
+    has_valid_source = False
+
+    # ── 第一步：选择数据来源 ──
+    st.subheader("① 选择数据来源")
     data_source = st.radio(
         "选择数据来源",
         ["预生成报告（推荐）", "Notion 直连", "CSV 上传"],
@@ -84,20 +234,16 @@ with st.sidebar:
         help="预生成报告：读取定时生成的快照（秒开）；Notion 直连：实时拉取最新数据；CSV 上传：手动上传文件"
     )
 
-    uploaded_file = None
-    notion_token = None
-
     if data_source == "Notion 直连":
-        # Token 优先从 Streamlit secrets 读取，其次环境变量
         try:
             notion_token = st.secrets.get("NOTION_API_TOKEN", "") if hasattr(st, 'secrets') else ""
         except Exception:
             notion_token = ""
         if not notion_token:
             notion_token = os.getenv("NOTION_API_TOKEN", "")
+        has_valid_source = bool(notion_token)
         if not notion_token:
-            st.error("未配置 NOTION_API_TOKEN，请在 Streamlit Secrets 或环境变量中添加")
-            st.stop()
+            st.warning("未配置 NOTION_API_TOKEN")
     elif data_source == "预生成报告（推荐）":
         report_dir = Path("reports")
         csv_files = sorted(report_dir.glob("timesheet_*.csv"), reverse=True) if report_dir.exists() else []
@@ -107,53 +253,52 @@ with st.sidebar:
                 csv_files,
                 format_func=lambda x: x.stem.replace("timesheet_", "周报 ")
             )
+            has_valid_source = True
         else:
             st.warning("暂无预生成报告，请切换到其他数据源")
-            st.stop()
     else:
         uploaded_file = st.file_uploader(
             "上传工时 CSV 文件",
             type=['csv'],
             help="从 Notion 导出的工时数据 CSV 文件"
         )
-    
-    # 参考日期
-    st.subheader("📅 参考日期")
+        has_valid_source = uploaded_file is not None
+
+    # ── 第二步：选择分析周 ──
+    st.subheader("② 选择分析周")
     reference_date = st.date_input(
-        "选择参考日期",
+        "选择该周内的任意一天",
         value=date.today(),
-        help="用于判断'本周'和'下周'的基准日期"
+        help="系统会自动计算该日期所在的完整周（周一~周日）"
     )
-    
-    # 分析选项
-    st.subheader("🔧 分析选项")
+    # 计算并展示周范围
+    _monday = reference_date - timedelta(days=reference_date.weekday())
+    _sunday = _monday + timedelta(days=6)
+    st.info(f"📅 将分析: {_monday.strftime('%m/%d')}(周一) ~ {_sunday.strftime('%m/%d')}(周日)")
+
+    # ── 第三步：可选设置 ──
+    st.subheader("③ 可选设置")
     consider_holidays = st.checkbox("考虑节假日", value=True, help="根据法定节假日调整标准工时")
     consider_leaves = st.checkbox("考虑请假", value=True, help="根据员工请假记录调整标准工时")
-    
-    # AI 分析设置
-    st.subheader("🤖 AI 分析设置")
 
-    # 检查 AI 模块是否可用
-    if not AI_MODULE_AVAILABLE:
-        st.warning("AI 模块未安装，请运行: `pip install anthropic`")
-        api_key = None
-        ai_enabled = False
-    else:
-        # 优先从 Streamlit secrets，其次环境变量
-        try:
-            api_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, 'secrets') else ""
-        except Exception:
-            api_key = ""
-        if not api_key:
-            api_key = os.getenv("ANTHROPIC_API_KEY")
-
-        if api_key:
-            st.success("已从环境变量读取 API Key")
+    with st.expander("🤖 AI 分析设置"):
+        if not AI_MODULE_AVAILABLE:
+            st.warning("AI 模块未安装，请运行: `pip install anthropic`")
+            api_key = None
+            ai_enabled = False
         else:
-            st.info("未检测到环境变量 ANTHROPIC_API_KEY，请手动输入")
+            try:
+                api_key = st.secrets.get("ANTHROPIC_API_KEY", "") if hasattr(st, 'secrets') else ""
+            except Exception:
+                api_key = ""
+            if not api_key:
+                api_key = os.getenv("ANTHROPIC_API_KEY")
 
-        # 手动输入（覆盖环境变量）
-        with st.expander("手动输入 API Key", expanded=not bool(api_key)):
+            if api_key:
+                st.success("已从环境变量读取 API Key")
+            else:
+                st.info("未检测到 ANTHROPIC_API_KEY，请手动输入")
+
             manual_key = st.text_input(
                 "Anthropic API Key",
                 type="password",
@@ -162,9 +307,8 @@ with st.sidebar:
             if manual_key:
                 api_key = manual_key
 
-        ai_enabled = is_ai_available(api_key)
+            ai_enabled = is_ai_available(api_key)
 
-    # 员工配置预览
     with st.expander("👥 员工配置预览"):
         config = get_employees_config()
         employees = config.get('employees', [])
@@ -180,37 +324,36 @@ with st.sidebar:
             for e in employees
         ])
         st.dataframe(emp_df, use_container_width=True, hide_index=True)
-
         st.caption("💡 修改员工配置请编辑 `config/employees.yaml`")
 
+    # ── 开始分析按钮 ──
+    st.divider()
+    if st.button("🚀 开始分析", type="primary", use_container_width=True):
+        # 校验必填项
+        if data_source == "Notion 直连" and not notion_token:
+            st.error("请先配置 NOTION_API_TOKEN（Streamlit Secrets 或环境变量）")
+        elif data_source == "CSV 上传" and uploaded_file is None:
+            st.error("请先上传 CSV 文件")
+        elif data_source == "预生成报告（推荐）" and selected_report is None:
+            st.error("暂无可用的预生成报告")
+        else:
+            st.session_state.analysis_started = True
+            st.session_state.analysis_params = {
+                'data_source': data_source,
+                'reference_date': reference_date,
+                'consider_holidays': consider_holidays,
+                'consider_leaves': consider_leaves,
+                'notion_token': notion_token,
+                'selected_report': str(selected_report) if selected_report else None,
+                'uploaded_file_content': uploaded_file.getvalue() if uploaded_file else None,
+            }
+            # 实际加载数据放到主内容区，这里只保存参数
+            st.session_state.loaded_data = None
+            st.session_state.loaded_meta = None
+            st.rerun()
+
 # ============================================
-# 主内容区
-# ============================================
-st.markdown('<h1 class="main-header">📊 团队工时分析系统</h1>', unsafe_allow_html=True)
-
-# 检查是否有数据（CSV 上传模式需要检查文件）
-if data_source == "CSV 上传" and uploaded_file is None:
-    st.info("👈 请在左侧上传工时 CSV 文件开始分析")
-
-    with st.expander("📖 使用说明", expanded=True):
-        st.markdown("""
-        ### 快速开始
-
-        1. **准备数据**：从 Notion 工时数据库导出 CSV 文件
-        2. **上传文件**：点击左侧「上传工时 CSV 文件」
-        3. **设置日期**：选择参考日期（用于判断本周/下周）
-        4. **查看报告**：系统自动生成分析报告和图表
-
-        ### 其他数据源
-
-        - **Notion 直连**：无需手动导出，直接从 Notion 实时拉取数据
-        - **预生成报告**：读取 GitHub Actions 定时生成的快照，秒开
-        """)
-
-    st.stop()
-
-# ============================================
-# 数据加载和预处理
+# 缓存函数定义
 # ============================================
 @st.cache_data
 def load_and_process(file_content: bytes, ref_date: date):
@@ -233,24 +376,78 @@ def fetch_and_process_from_notion(_token: str, ref_date: date):
     df, meta = preprocess_data(df_raw, ref_date)
     return df, meta
 
-try:
-    if data_source == "Notion 直连":
-        with st.spinner("正在从 Notion 获取数据..."):
-            df, meta = fetch_and_process_from_notion(notion_token, reference_date)
-    elif data_source == "预生成报告（推荐）":
-        with st.spinner("正在加载预生成报告..."):
-            df_raw = load_timesheet(str(selected_report))
-            df, meta = preprocess_data(df_raw, reference_date)
-    else:
-        with st.spinner("正在加载数据..."):
-            df, meta = load_and_process(uploaded_file.getvalue(), reference_date)
-        validation = validate_data(pd.read_csv(io.BytesIO(uploaded_file.getvalue()), encoding='utf-8-sig'))
-        if not validation['valid']:
-            st.warning("⚠️ 数据质量问题：" + "；".join(validation['issues']))
+# ============================================
+# 主内容区
+# ============================================
+st.markdown('<h1 class="main-header">📊 团队工时分析系统</h1>', unsafe_allow_html=True)
+st.markdown('<p class="main-subtitle">实时追踪团队工时数据，智能分析工作负荷与项目投入</p>', unsafe_allow_html=True)
 
-except Exception as e:
-    st.error(f"❌ 数据加载失败: {e}")
+# 门控：未开始分析时显示欢迎页
+if not st.session_state.analysis_started:
+    st.info("👈 请在左侧配置数据来源和分析周，然后点击「开始分析」")
+
+    with st.expander("📖 使用说明", expanded=True):
+        st.markdown("""
+        ### 快速开始
+
+        1. **选择数据来源**：Notion 直连、预生成报告或 CSV 上传
+        2. **选择分析周**：选择该周内的任意一天，系统自动计算周一~周日范围
+        3. **点击开始分析**：系统加载数据并生成分析报告
+
+        ### 数据来源说明
+
+        - **预生成报告**：读取 GitHub Actions 定时生成的快照，秒开
+        - **Notion 直连**：实时拉取最新数据（需配置 API Token）
+        - **CSV 上传**：手动上传从 Notion 导出的 CSV 文件
+        """)
+
     st.stop()
+
+# 设置变更检测
+_current_params = {
+    'data_source': data_source,
+    'reference_date': reference_date,
+    'consider_holidays': consider_holidays,
+    'consider_leaves': consider_leaves,
+}
+_saved_params = st.session_state.analysis_params
+if (_current_params['data_source'] != _saved_params.get('data_source')
+    or _current_params['reference_date'] != _saved_params.get('reference_date')
+    or _current_params['consider_holidays'] != _saved_params.get('consider_holidays')
+    or _current_params['consider_leaves'] != _saved_params.get('consider_leaves')):
+    st.warning("⚠️ 设置已变更，当前显示的是上次分析的结果。请点击侧边栏「开始分析」刷新。")
+
+# 数据加载（仅在 loaded_data 为空时执行）
+if st.session_state.loaded_data is None:
+    params = st.session_state.analysis_params
+    try:
+        if params['data_source'] == "Notion 直连":
+            with st.spinner("正在从 Notion 获取数据..."):
+                df, meta = fetch_and_process_from_notion(params['notion_token'], params['reference_date'])
+        elif params['data_source'] == "预生成报告（推荐）":
+            with st.spinner("正在加载预生成报告..."):
+                df_raw = load_timesheet(params['selected_report'])
+                df, meta = preprocess_data(df_raw, params['reference_date'])
+        else:
+            with st.spinner("正在加载数据..."):
+                df, meta = load_and_process(params['uploaded_file_content'], params['reference_date'])
+            validation = validate_data(pd.read_csv(io.BytesIO(params['uploaded_file_content']), encoding='utf-8-sig'))
+            if not validation['valid']:
+                st.warning("⚠️ 数据质量问题：" + "；".join(validation['issues']))
+
+        st.session_state.loaded_data = df
+        st.session_state.loaded_meta = meta
+
+    except Exception as e:
+        st.error(f"❌ 数据加载失败: {e}")
+        st.session_state.analysis_started = False
+        st.stop()
+
+df = st.session_state.loaded_data
+meta = st.session_state.loaded_meta
+reference_date = st.session_state.analysis_params['reference_date']
+consider_holidays = st.session_state.analysis_params['consider_holidays']
+consider_leaves = st.session_state.analysis_params['consider_leaves']
 
 # ============================================
 # 分析
@@ -314,7 +511,7 @@ st.divider()
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "👥 人员分析",
     "📁 项目分析",
-    "📈 图表",
+    "📊 图表中心",
     "📅 下周安排",
     "🤖 AI 深度分析",
     "📄 报告下载"
@@ -325,14 +522,14 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 # ============================================
 with tab1:
     if current_members:
-        # 状态分布
+        # ① 核心指标
         col1, col2, col3, col4 = st.columns(4)
-        
+
         normal = len([m for m in current_members if '正常' in m.status])
         overloaded = len([m for m in current_members if '超负荷' in m.status])
         underloaded = len([m for m in current_members if '偏低' in m.status])
         flexible = len([m for m in current_members if '按需' in m.status])
-        
+
         with col1:
             st.metric("✅ 正常", f"{normal} 人")
         with col2:
@@ -341,10 +538,10 @@ with tab1:
             st.metric("📉 偏低", f"{underloaded} 人")
         with col4:
             st.metric("🔄 按需", f"{flexible} 人")
-        
+
         st.divider()
-        
-        # 人员工时表格
+
+        # ② 全员工时表格
         member_df = pd.DataFrame([
             {
                 '姓名': m.name,
@@ -358,7 +555,7 @@ with tab1:
             }
             for m in current_members
         ])
-        
+
         st.dataframe(
             member_df,
             use_container_width=True,
@@ -367,11 +564,61 @@ with tab1:
                 '状态': st.column_config.TextColumn(width='medium')
             }
         )
-        
-        # 洞察建议
-        if insights:
-            st.subheader("💡 洞察建议")
-            for insight in insights:
+
+        st.divider()
+
+        # ③ 人员事项明细下钻
+        if len(df_current) > 0:
+            st.subheader("🔍 人员事项明细")
+
+            member_names = [m.name for m in current_members]
+            overloaded_names = [m.name for m in current_members if '超负荷' in m.status]
+            default_idx = member_names.index(overloaded_names[0]) if overloaded_names else 0
+
+            selected_member = st.selectbox(
+                "选择成员查看明细",
+                options=member_names,
+                index=default_idx,
+                key="member_drilldown"
+            )
+
+            m_data = df_current[df_current['成员_中文'] == selected_member]
+            if len(m_data) > 0:
+                proj_groups = m_data.groupby('项目名称_清理').agg(
+                    工时=('工时 h', 'sum'),
+                    任务数=('工时 h', 'count')
+                ).sort_values('工时', ascending=False)
+
+                detail_rows = []
+                for proj_name, row in proj_groups.iterrows():
+                    tasks_in_proj = m_data[m_data['项目名称_清理'] == proj_name]
+                    task_list = []
+                    for _, t in tasks_in_proj.sort_values('工时 h', ascending=False).iterrows():
+                        desc = str(t.get('工作内容', '')).strip() or '（无描述）'
+                        if len(desc) > 30:
+                            desc = desc[:30] + "..."
+                        task_list.append(f"{desc}({t['工时 h']}h)")
+                    detail_rows.append({
+                        '项目': str(proj_name)[:25] + ('...' if len(str(proj_name)) > 25 else ''),
+                        '工时': f"{row['工时']:.1f}h",
+                        '任务数': int(row['任务数']),
+                        '具体事项': '；'.join(task_list)
+                    })
+
+                st.dataframe(
+                    pd.DataFrame(detail_rows),
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.info("该成员本周无工时记录")
+
+        # ④ 人员洞察（只显示 warning/opportunity）
+        people_insights = [i for i in insights if i['type'] in ('warning', 'opportunity')]
+        if people_insights:
+            st.divider()
+            st.subheader("💡 人员洞察")
+            for insight in people_insights:
                 if insight['severity'] == 'high':
                     st.error(f"**{insight['title']}**\n\n{insight['content']}")
                 elif insight['severity'] == 'medium':
@@ -386,7 +633,25 @@ with tab1:
 # ============================================
 with tab2:
     if current_projects:
-        # 项目工时表格
+        # ① 核心指标
+        _total_h = current_summary['total_hours']
+        _proj_cnt = current_summary['project_count']
+        _avg_h = round(_total_h / _proj_cnt, 1) if _proj_cnt > 0 else 0
+        _collab_cnt = len([p for p in current_projects if p.member_count > 1])
+
+        pc1, pc2, pc3, pc4 = st.columns(4)
+        with pc1:
+            st.metric("总投入工时", f"{_total_h} h")
+        with pc2:
+            st.metric("活跃项目数", f"{_proj_cnt} 个")
+        with pc3:
+            st.metric("平均工时/项目", f"{_avg_h} h")
+        with pc4:
+            st.metric("多人协作项目", f"{_collab_cnt} 个")
+
+        st.divider()
+
+        # ② 项目工时排名表格
         project_df = pd.DataFrame([
             {
                 '排名': i,
@@ -399,80 +664,250 @@ with tab2:
             }
             for i, p in enumerate(current_projects[:15], 1)
         ])
-        
+
         st.dataframe(
             project_df,
             use_container_width=True,
             hide_index=True
         )
-        
-        # 按属性分布
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("📊 项目属性分布")
-            attr_data = analyzer.analyze_by_attribute("本周")
-            if attr_data:
-                attr_df = pd.DataFrame([
-                    {'属性': k, '工时': v}
-                    for k, v in sorted(attr_data.items(), key=lambda x: x[1], reverse=True)
-                ])
-                st.bar_chart(attr_df.set_index('属性'))
-        
-        with col2:
-            st.subheader("🎯 优先级分布")
-            priority_data = analyzer.analyze_by_priority("本周")
-            if priority_data:
-                priority_df = pd.DataFrame([
-                    {'优先级': k, '工时': v}
-                    for k, v in sorted(priority_data.items(), key=lambda x: x[1], reverse=True)
-                ])
-                st.bar_chart(priority_df.set_index('优先级'))
+
+        st.divider()
+
+        # ③ 重点项目下钻（TOP 3）
+        if len(df_current) > 0:
+            st.subheader("🔍 重点项目明细（TOP 3）")
+
+            for proj in current_projects[:3]:
+                proj_data = df_current[df_current['项目名称_清理'] == proj.name]
+                with st.expander(f"**{proj.name}** — {proj.total_hours}h（{proj.percentage}%）"):
+                    if len(proj_data) > 0:
+                        for member in proj_data['成员_中文'].unique():
+                            member_data = proj_data[proj_data['成员_中文'] == member]
+                            member_hours = member_data['工时 h'].sum()
+                            st.markdown(f"**{member}**（{member_hours:.1f}h）：")
+                            tasks = member_data.sort_values('工时 h', ascending=False)
+                            for _, row in tasks.iterrows():
+                                task_name = str(row.get('工作内容', '')).strip() or '（无描述）'
+                                st.markdown(f"- {task_name}（{row['工时 h']}h）")
+                    else:
+                        st.info("无明细数据")
+
+        # ④ 项目洞察（未立项分析 + risk/info insights）
+        st.divider()
+        st.subheader("💡 项目洞察")
+
+        # 未立项/临时指派分析
+        if len(df_current) > 0:
+            adhoc_data = df_current[df_current['项目名称_清理'].str.contains('未立项|临时指派', na=False)]
+            if len(adhoc_data) > 0:
+                total_hours_all = df_current['工时 h'].sum()
+                adhoc_hours = adhoc_data['工时 h'].sum()
+                adhoc_pct = adhoc_hours / total_hours_all * 100 if total_hours_all > 0 else 0
+                adhoc_members = adhoc_data['成员_中文'].unique()
+
+                st.warning(
+                    f"**⚠️ 未立项/临时指派工时**\n\n"
+                    f"共 {adhoc_hours:.1f}h（占比 {adhoc_pct:.1f}%），涉及 {len(adhoc_members)} 人：{', '.join(adhoc_members)}"
+                )
+
+                with st.expander("查看未立项明细"):
+                    adhoc_detail = []
+                    for _, row in adhoc_data.sort_values('工时 h', ascending=False).iterrows():
+                        task = str(row.get('工作内容', '')).strip() or '（无描述）'
+                        if len(task) > 50:
+                            task = task[:50] + "..."
+                        adhoc_detail.append({
+                            '日期': str(row.get('日期', ''))[:10],
+                            '成员': row.get('成员_中文', ''),
+                            '工作内容': task,
+                            '工时': f"{row['工时 h']}h"
+                        })
+                    st.dataframe(
+                        pd.DataFrame(adhoc_detail),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+        # 项目相关 insights (risk / info)
+        project_insights = [i for i in insights if i['type'] in ('risk', 'info')]
+        for insight in project_insights:
+            if insight['severity'] == 'high':
+                st.error(f"**{insight['title']}**\n\n{insight['content']}")
+            elif insight['severity'] == 'medium':
+                st.warning(f"**{insight['title']}**\n\n{insight['content']}")
+            else:
+                st.info(f"**{insight['title']}**\n\n{insight['content']}")
     else:
         st.info("本周暂无项目数据")
 
 # ============================================
-# Tab 3: 图表
+# Tab 3: 图表中心（Altair）
 # ============================================
 with tab3:
     if len(df_current) > 0:
-        st.subheader("📊 可视化图表")
-        
-        # 生成完整图表
-        fig = create_visualizations(
-            df=df_current,
-            member_results=current_members,
-            project_results=current_projects,
-            return_fig=True
-        )
-        
-        if fig:
-            st.pyplot(fig)
-        
-        # 单独图表选择
+        # --- Row 1 ---
+        r1c1, r1c2 = st.columns(2)
+
+        with r1c1:
+            st.markdown("##### 👥 人员工时柱状图")
+            bar_data = pd.DataFrame([
+                {'成员': m.name, '实际工时': m.total_hours,
+                 '标准工时': m.standard_hours if m.standard_hours else 0,
+                 '达成率': f"{m.achievement_rate}%" if m.achievement_rate else "N/A"}
+                for m in current_members
+            ])
+            bar_melted = bar_data.melt(
+                id_vars=['成员', '达成率'], value_vars=['实际工时', '标准工时'],
+                var_name='类型', value_name='工时'
+            )
+            chart_bar = alt.Chart(bar_melted).mark_bar().encode(
+                y=alt.Y('成员:N', sort='-x', title=None),
+                x=alt.X('工时:Q', title='工时 (h)'),
+                color=alt.Color('类型:N', scale=alt.Scale(range=['#4F46E5', '#E2E8F0'])),
+                tooltip=['成员', '类型', '工时', '达成率']
+            ).properties(height=max(len(current_members) * 35, 200))
+            st.altair_chart(chart_bar, use_container_width=True)
+
+        with r1c2:
+            st.markdown("##### 🍩 项目工时分布")
+            top_n = 8
+            donut_items = []
+            other_hours = 0.0
+            for idx, p in enumerate(current_projects):
+                if idx < top_n:
+                    donut_items.append({'项目': p.name[:20], '工时': p.total_hours})
+                else:
+                    other_hours += p.total_hours
+            if other_hours > 0:
+                donut_items.append({'项目': '其他', '工时': round(other_hours, 1)})
+            donut_df = pd.DataFrame(donut_items)
+            chart_donut = alt.Chart(donut_df).mark_arc(innerRadius=50).encode(
+                theta=alt.Theta('工时:Q'),
+                color=alt.Color('项目:N', sort=None),
+                tooltip=['项目', '工时']
+            ).properties(height=300)
+            st.altair_chart(chart_donut, use_container_width=True)
+
+        # --- Row 2 ---
+        r2c1, r2c2 = st.columns(2)
+
+        with r2c1:
+            st.markdown("##### 📏 工时达成率")
+            rate_data = pd.DataFrame([
+                {'成员': m.name, '达成率': m.achievement_rate if m.achievement_rate else 0}
+                for m in current_members if m.standard_hours and m.standard_hours > 0
+            ])
+            if len(rate_data) > 0:
+                rate_data['状态'] = rate_data['达成率'].apply(
+                    lambda x: '超负荷' if x > 120 else ('偏低' if x < 70 else '正常')
+                )
+                status_color = alt.Scale(
+                    domain=['超负荷', '偏低', '正常'],
+                    range=['#DC2626', '#D97706', '#059669']
+                )
+                bars = alt.Chart(rate_data).mark_bar().encode(
+                    y=alt.Y('成员:N', sort='-x', title=None),
+                    x=alt.X('达成率:Q', title='达成率 (%)'),
+                    color=alt.Color('状态:N', scale=status_color, legend=None),
+                    tooltip=['成员', alt.Tooltip('达成率:Q', format='.1f'), '状态']
+                ).properties(height=max(len(rate_data) * 35, 200))
+
+                rule_data = pd.DataFrame([
+                    {'阈值': 70, '标签': '偏低线 70%'},
+                    {'阈值': 100, '标签': '标准 100%'},
+                    {'阈值': 120, '标签': '超负荷 120%'},
+                ])
+                rules = alt.Chart(rule_data).mark_rule(strokeDash=[4, 4]).encode(
+                    x='阈值:Q',
+                    color=alt.value('#94A3B8'),
+                    tooltip=['标签']
+                )
+                st.altair_chart(bars + rules, use_container_width=True)
+            else:
+                st.info("无达成率数据")
+
+        with r2c2:
+            st.markdown("##### 🏷️ 项目属性分布")
+            attr_data = analyzer.analyze_by_attribute("本周")
+            if attr_data:
+                attr_df = pd.DataFrame([
+                    {'属性': str(k) if pd.notna(k) else '未分类', '工时': round(v, 1)}
+                    for k, v in sorted(attr_data.items(), key=lambda x: x[1], reverse=True)
+                ])
+                chart_attr = alt.Chart(attr_df).mark_bar().encode(
+                    y=alt.Y('属性:N', sort='-x', title=None),
+                    x=alt.X('工时:Q', title='工时 (h)'),
+                    color=alt.value('#7C3AED'),
+                    tooltip=['属性', '工时']
+                ).properties(height=max(len(attr_df) * 35, 150))
+                st.altair_chart(chart_attr, use_container_width=True)
+            else:
+                st.info("无属性数据")
+
+        # --- Row 3 ---
+        r3c1, r3c2 = st.columns(2)
+
+        with r3c1:
+            st.markdown("##### 📈 每日工时趋势")
+            trend = df_current.groupby('日期_date')['工时 h'].sum().reset_index()
+            trend.columns = ['日期', '工时']
+            trend = trend.sort_values('日期')
+
+            area = alt.Chart(trend).mark_area(opacity=0.15, color='#4F46E5').encode(
+                x=alt.X('日期:T', title=None),
+                y=alt.Y('工时:Q', title='工时 (h)')
+            )
+            line = alt.Chart(trend).mark_line(point=True, color='#4F46E5').encode(
+                x=alt.X('日期:T', title=None),
+                y=alt.Y('工时:Q', title='工时 (h)'),
+                tooltip=[alt.Tooltip('日期:T', format='%m-%d'), '工时']
+            )
+            st.altair_chart(area + line, use_container_width=True)
+
+        with r3c2:
+            st.markdown("##### 🎯 优先级分布")
+            priority_data = analyzer.analyze_by_priority("本周")
+            if priority_data:
+                pri_df = pd.DataFrame([
+                    {'优先级': str(k) if pd.notna(k) else '未设置', '工时': round(v, 1)}
+                    for k, v in sorted(priority_data.items(), key=lambda x: x[1], reverse=True)
+                ])
+                chart_pri = alt.Chart(pri_df).mark_bar().encode(
+                    y=alt.Y('优先级:N', sort='-x', title=None),
+                    x=alt.X('工时:Q', title='工时 (h)'),
+                    color=alt.value('#06B6D4'),
+                    tooltip=['优先级', '工时']
+                ).properties(height=max(len(pri_df) * 35, 150))
+                st.altair_chart(chart_pri, use_container_width=True)
+            else:
+                st.info("无优先级数据")
+
+        # --- 底部全宽：热力图 ---
         st.divider()
-        st.subheader("🔍 单独查看")
-        
-        chart_type = st.selectbox(
-            "选择图表类型",
-            options=[
-                ('member_hours', '人员工时统计'),
-                ('project_pie', '项目工时分布'),
-                ('daily_trend', '每日工时趋势'),
-                ('achievement_rate', '工时达成率'),
-                ('attribute', '项目属性分布'),
-                ('heatmap', '工作强度热力图')
-            ],
-            format_func=lambda x: x[1]
+        st.markdown("##### 🔥 工作强度热力图")
+        heat_df = df_current.groupby(['成员_中文', '日期_date'])['工时 h'].sum().reset_index()
+        heat_df.columns = ['成员', '日期', '工时']
+
+        heat_rect = alt.Chart(heat_df).mark_rect(cornerRadius=3).encode(
+            x=alt.X('日期:T', title=None, axis=alt.Axis(format='%m-%d')),
+            y=alt.Y('成员:N', title=None),
+            color=alt.Color('工时:Q', scale=alt.Scale(scheme='blues'), title='工时 (h)'),
+            tooltip=['成员', alt.Tooltip('日期:T', format='%m-%d'), alt.Tooltip('工时:Q', format='.1f')]
         )
-        
-        single_fig = create_single_chart(
-            chart_type=chart_type[0],
-            df=df_current,
-            member_results=current_members,
-            project_results=current_projects
+        _median = heat_df['工时'].median()
+        heat_df['_text_color'] = heat_df['工时'].apply(lambda x: '高' if x > _median else '低')
+        heat_text = alt.Chart(heat_df).mark_text(fontSize=11).encode(
+            x=alt.X('日期:T'),
+            y=alt.Y('成员:N'),
+            text=alt.Text('工时:Q', format='.1f'),
+            color=alt.Color('_text_color:N',
+                            scale=alt.Scale(domain=['高', '低'], range=['white', '#1E293B']),
+                            legend=None)
         )
-        st.pyplot(single_fig)
+        st.altair_chart(
+            (heat_rect + heat_text).properties(height=max(heat_df['成员'].nunique() * 35, 200)),
+            use_container_width=True
+        )
     else:
         st.info("本周暂无数据，无法生成图表")
 
@@ -710,5 +1145,8 @@ with tab6:
 # ============================================
 # 页脚
 # ============================================
-st.divider()
-st.caption(f"📊 团队工时分析系统 | 参考日期: {reference_date} | 数据记录: {meta['total_records']} 条")
+st.markdown("---")
+st.markdown(
+    f'<p class="footer-text">📊 团队工时分析系统 &nbsp;·&nbsp; 参考日期: {reference_date} &nbsp;·&nbsp; 数据记录: {meta["total_records"]} 条</p>',
+    unsafe_allow_html=True
+)

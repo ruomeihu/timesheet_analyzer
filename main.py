@@ -172,7 +172,8 @@ def main():
         insights=insights,
         next_week_summary=next_summary,
         next_week_members=next_members,
-        next_week_projects=next_projects
+        next_week_projects=next_projects,
+        df=df
     )
     
     report_path = output_dir / f"report_{reference_date.strftime('%Y%m%d')}.md"

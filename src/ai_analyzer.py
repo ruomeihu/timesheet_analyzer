@@ -456,7 +456,7 @@ class AIAnalyzer:
         """
         清理 LLM 输出中的常见 JSON 格式问题
 
-        处理：markdown 代码块包裹、尾部逗号、注释等
+        处理：markdown 代码块包裹、尾部逗号、控制字符、注释等
         """
         text = raw.strip()
 
@@ -474,7 +474,62 @@ class AIAnalyzer:
         # 3. 移除尾部逗号（, 后紧跟 } 或 ]，中间可能有空白/换行）
         text = re.sub(r',\s*([}\]])', r'\1', text)
 
+        # 4. 修复 JSON 字符串值中的未转义控制字符（换行、制表符等）
+        #    在 JSON 字符串内部，真正的换行符应该是 \n 而不是字面换行
+        text = self._escape_control_chars_in_strings(text)
+
         return text
+
+    def _escape_control_chars_in_strings(self, text: str) -> str:
+        """
+        修复 JSON 字符串值中未转义的控制字符
+
+        LLM 输出的 JSON 中，字符串值经常包含字面换行符、制表符等，
+        这些在 JSON 标准中是不合法的，需要转义为 \\n、\\t 等。
+        """
+        result = []
+        in_string = False
+        escape_next = False
+        i = 0
+
+        while i < len(text):
+            ch = text[i]
+
+            if escape_next:
+                result.append(ch)
+                escape_next = False
+                i += 1
+                continue
+
+            if ch == '\\' and in_string:
+                escape_next = True
+                result.append(ch)
+                i += 1
+                continue
+
+            if ch == '"' and not escape_next:
+                in_string = not in_string
+                result.append(ch)
+                i += 1
+                continue
+
+            if in_string:
+                if ch == '\n':
+                    result.append('\\n')
+                elif ch == '\r':
+                    result.append('\\r')
+                elif ch == '\t':
+                    result.append('\\t')
+                elif ord(ch) < 0x20:
+                    result.append(f'\\u{ord(ch):04x}')
+                else:
+                    result.append(ch)
+            else:
+                result.append(ch)
+
+            i += 1
+
+        return ''.join(result)
 
     def _parse_response(self, response: str, stop_reason: str = "end_turn") -> AIInsightResult:
         """解析 Claude 响应"""
@@ -501,10 +556,8 @@ class AIAnalyzer:
             try:
                 data = json.loads(json_str)
             except json.JSONDecodeError:
-                if truncated:
-                    data = self._repair_truncated_json(json_str)
-                else:
-                    raise
+                # 无论是否截断都尝试修复（LLM 输出的 JSON 可能有格式问题）
+                data = self._repair_truncated_json(json_str)
 
             # 构建维度结果
             dimensions = []

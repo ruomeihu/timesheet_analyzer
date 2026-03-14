@@ -664,7 +664,8 @@ with tab6:
         next_week_summary=next_summary,
         next_week_members=next_members,
         next_week_projects=next_projects,
-        ai_insights=ai_insights
+        ai_insights=ai_insights,
+        df=df
     )
     
     # 预览

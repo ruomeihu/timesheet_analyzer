@@ -172,7 +172,8 @@ def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
             insights=insights,
             next_week_summary=next_summary,
             next_week_members=next_members,
-            next_week_projects=next_projects
+            next_week_projects=next_projects,
+            df=df
         )
         save_report(report_content, Path(report_path))
 

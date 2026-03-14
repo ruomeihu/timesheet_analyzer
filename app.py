@@ -77,48 +77,238 @@ st.set_page_config(
 # ============================================
 st.markdown("""
 <style>
+    /* ── Google Fonts ── */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+    /* ── CSS Variables (Light) ── */
+    :root {
+        --card-bg: #FFFFFF;
+        --card-border: #E2E8F0;
+        --text-primary: #1E293B;
+        --text-secondary: #64748B;
+        --bg-subtle: #F8FAFC;
+        --bg-sidebar: #F8FAFC;
+        --shadow-light: rgba(0,0,0,0.04);
+        --indigo: #4F46E5;
+        --violet: #7C3AED;
+        --cyan: #06B6D4;
+        --emerald: #059669;
+        --hero-bg: linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 50%, #FDF2F8 100%);
+        --hero-border: #E0E7FF;
+        --tab-list-bg: #F1F5F9;
+        --tab-active-bg: #FFFFFF;
+        --chart-header-border: #F1F5F9;
+        --chart-header-color: #334155;
+        --step-bg-gradient: linear-gradient(90deg, #EEF2FF, transparent);
+        --sidebar-text: #1E293B;
+    }
+
+    /* ── Dark mode variables ── */
+    /* Browser-level dark mode */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --card-bg: #1E293B;
+            --card-border: #334155;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --bg-subtle: #0F172A;
+            --bg-sidebar: #0F172A;
+            --shadow-light: rgba(0,0,0,0.3);
+            --hero-bg: linear-gradient(135deg, #1a1744 0%, #1e1b3a 50%, #231a2e 100%);
+            --hero-border: #312e81;
+            --tab-list-bg: #1E293B;
+            --tab-active-bg: #334155;
+            --chart-header-border: #334155;
+            --chart-header-color: #E2E8F0;
+            --step-bg-gradient: linear-gradient(90deg, rgba(79,70,229,0.15), transparent);
+            --sidebar-text: #E2E8F0;
+        }
+    }
+    /* Streamlit built-in dark theme */
+    [data-theme="dark"] {
+        --card-bg: #1E293B;
+        --card-border: #334155;
+        --text-primary: #F1F5F9;
+        --text-secondary: #94A3B8;
+        --bg-subtle: #0F172A;
+        --bg-sidebar: #0F172A;
+        --shadow-light: rgba(0,0,0,0.3);
+        --hero-bg: linear-gradient(135deg, #1a1744 0%, #1e1b3a 50%, #231a2e 100%);
+        --hero-border: #312e81;
+        --tab-list-bg: #1E293B;
+        --tab-active-bg: #334155;
+        --chart-header-border: #334155;
+        --chart-header-color: #E2E8F0;
+        --step-bg-gradient: linear-gradient(90deg, rgba(79,70,229,0.15), transparent);
+        --sidebar-text: #E2E8F0;
+    }
+
+    /* Dark mode: force main area & sidebar backgrounds */
+    @media (prefers-color-scheme: dark) {
+        [data-testid="stAppViewContainer"],
+        .main .block-container,
+        [data-testid="stMainBlockContainer"] {
+            background-color: #0F172A !important;
+            color: #F1F5F9 !important;
+        }
+        [data-testid="stHeader"] {
+            background-color: #0F172A !important;
+        }
+        [data-testid="stSidebar"] > div:first-child {
+            background-color: #0F172A !important;
+        }
+        /* Fix inputs in dark mode */
+        [data-testid="stSidebar"] input,
+        [data-testid="stSidebar"] [data-baseweb="select"],
+        [data-testid="stSidebar"] [data-baseweb="input"] {
+            background-color: #1E293B !important;
+            color: #F1F5F9 !important;
+            border-color: #334155 !important;
+        }
+        /* Select box — container, value text, dropdown */
+        [data-baseweb="select"] > div,
+        [data-baseweb="select"] [data-baseweb="tag"],
+        [data-baseweb="select"] span,
+        [data-baseweb="select"] input {
+            background-color: #1E293B !important;
+            color: #F1F5F9 !important;
+        }
+        [data-baseweb="select"] svg {
+            fill: #94A3B8 !important;
+        }
+        /* Select dropdown menu */
+        [data-baseweb="popover"],
+        [data-baseweb="menu"],
+        [role="listbox"],
+        [role="option"] {
+            background-color: #1E293B !important;
+            color: #F1F5F9 !important;
+        }
+        [role="option"]:hover {
+            background-color: #334155 !important;
+        }
+        /* Streamlit subheader text */
+        h1, h2, h3, h4, h5, h6,
+        .stMarkdown, .stCaption, p, span, label {
+            color: #F1F5F9 !important;
+        }
+        /* Fix alerts */
+        [data-testid="stAlert"] {
+            background-color: #1E293B !important;
+            color: #F1F5F9 !important;
+        }
+        /* Fix date input */
+        [data-testid="stDateInput"] input {
+            background-color: #1E293B !important;
+            color: #F1F5F9 !important;
+        }
+        /* DataFrames — dark wrapper */
+        [data-testid="stDataFrame"] {
+            background-color: #1E293B !important;
+            border-radius: 10px;
+        }
+    }
+
+    /* Streamlit theme dark: same overrides */
+    [data-theme="dark"] [data-testid="stAppViewContainer"],
+    [data-theme="dark"] .main .block-container,
+    [data-theme="dark"] [data-testid="stMainBlockContainer"] {
+        background-color: #0F172A !important;
+        color: #F1F5F9 !important;
+    }
+    [data-theme="dark"] [data-testid="stHeader"] {
+        background-color: #0F172A !important;
+    }
+    [data-theme="dark"] [data-testid="stSidebar"] > div:first-child {
+        background-color: #0F172A !important;
+    }
+
+    /* ── Global Font ── */
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* ── Hero Section ── */
+    .hero-section {
+        background: var(--hero-bg);
+        border: 1px solid var(--hero-border);
+        border-radius: 16px;
+        padding: 2rem 2.5rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(#4F46E5 0.5px, transparent 0.5px);
+        background-size: 24px 24px;
+        opacity: 0.04;
+    }
+
     /* Header */
     .main-header {
-        font-size: 2.2rem;
-        font-weight: 700;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 2.4rem;
+        font-weight: 800;
         background: linear-gradient(135deg, #4F46E5, #7C3AED);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin-bottom: 0.5rem;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.03em;
+        position: relative;
     }
     .main-subtitle {
-        color: #64748B;
+        color: var(--text-secondary);
         font-size: 0.95rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0;
+        position: relative;
     }
 
-    /* Metric cards */
+    /* ── Metric cards ── */
     [data-testid="stMetric"] {
-        background: white;
-        border: 1px solid #E2E8F0;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
         border-radius: 12px;
         padding: 1rem 1.25rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        transition: box-shadow 0.2s ease;
+        box-shadow: 0 1px 3px var(--shadow-light);
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
     }
     [data-testid="stMetric"]:hover {
         box-shadow: 0 4px 12px rgba(79,70,229,0.1);
+        transform: translateY(-1px);
     }
     [data-testid="stMetricLabel"] {
-        color: #64748B;
+        color: var(--text-secondary);
         font-size: 0.85rem;
         font-weight: 500;
     }
     [data-testid="stMetricValue"] {
-        color: #1E293B;
+        font-family: 'DM Mono', 'SF Mono', monospace;
+        color: var(--text-primary);
         font-weight: 700;
+        letter-spacing: -0.02em;
     }
 
-    /* Tabs */
+    /* Metric color bars */
+    [data-testid="stHorizontalBlock"] > div:nth-child(1) [data-testid="stMetric"] {
+        border-top: 3px solid var(--indigo);
+    }
+    [data-testid="stHorizontalBlock"] > div:nth-child(2) [data-testid="stMetric"] {
+        border-top: 3px solid var(--cyan);
+    }
+    [data-testid="stHorizontalBlock"] > div:nth-child(3) [data-testid="stMetric"] {
+        border-top: 3px solid var(--violet);
+    }
+    [data-testid="stHorizontalBlock"] > div:nth-child(4) [data-testid="stMetric"] {
+        border-top: 3px solid var(--emerald);
+    }
+
+    /* ── Tabs ── */
     .stTabs [data-baseweb="tab-list"] {
         gap: 4px;
-        background: #F1F5F9;
+        background: var(--tab-list-bg);
         border-radius: 10px;
         padding: 4px;
     }
@@ -127,28 +317,45 @@ st.markdown("""
         padding: 8px 16px;
         font-weight: 500;
         font-size: 0.9rem;
+        transition: all 0.2s ease;
     }
     .stTabs [aria-selected="true"] {
-        background: white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        background: var(--tab-active-bg);
+        box-shadow: 0 1px 3px var(--shadow-light);
+        border-bottom: 2px solid var(--indigo);
+    }
+    .stTabs [aria-selected="false"]:hover {
+        background: rgba(79, 70, 229, 0.1);
     }
 
-    /* Sidebar */
+    /* ── Sidebar ── */
     [data-testid="stSidebar"] {
-        background: #F8FAFC;
-        border-right: 1px solid #E2E8F0;
+        background: var(--bg-sidebar);
+        border-right: 1px solid var(--card-border);
+    }
+    [data-testid="stSidebar"] * {
+        color: var(--sidebar-text) !important;
     }
     [data-testid="stSidebar"] .stRadio > label {
         font-weight: 500;
     }
+    /* Sidebar step headers */
+    [data-testid="stSidebar"] .stSubheader {
+        background: var(--step-bg-gradient);
+        padding: 0.5rem 0.75rem;
+        border-left: 3px solid var(--indigo);
+        border-radius: 0 8px 8px 0;
+        margin: 1rem 0 0.5rem 0;
+        font-size: 0.85rem;
+    }
 
-    /* DataFrames */
+    /* ── DataFrames ── */
     [data-testid="stDataFrame"] {
         border-radius: 10px;
         overflow: hidden;
     }
 
-    /* Buttons */
+    /* ── Buttons ── */
     .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #4F46E5, #7C3AED);
         border: none;
@@ -162,37 +369,111 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(79,70,229,0.3);
     }
 
-    /* Expander */
+    /* ── Expander ── */
     .streamlit-expanderHeader {
         font-weight: 600;
-        color: #334155;
+        color: var(--text-primary);
     }
 
-    /* Divider */
+    /* ── Divider ── */
     [data-testid="stHorizontalBlock"] {
         gap: 1rem;
     }
 
-    /* Status colors */
+    /* ── Status colors ── */
     .status-normal { color: #059669; }
     .status-warning { color: #DC2626; }
     .status-low { color: #D97706; }
 
-    /* Alert styling */
+    /* ── Alert styling ── */
     [data-testid="stAlert"] {
         border-radius: 10px;
     }
 
-    /* Altair chart card */
-    [data-testid="stVegaLiteChart"] {
-        background: white;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    /* ── Chart card ── */
+    .chart-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px var(--shadow-light);
+        margin-bottom: 1rem;
+    }
+    .chart-card-header {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid var(--chart-header-border);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--chart-header-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .chart-card-body {
+        padding: 0.5rem;
     }
 
-    /* Footer */
+    /* Altair chart card (fallback for unwrapped charts) */
+    [data-testid="stVegaLiteChart"] {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 0.75rem;
+        box-shadow: 0 1px 3px var(--shadow-light);
+    }
+
+    /* ── Welcome step cards ── */
+    .welcome-step {
+        text-align: center;
+        padding: 2rem 1rem;
+        background: var(--bg-subtle);
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .welcome-step:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79,70,229,0.08);
+    }
+    .welcome-step-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .welcome-step-title {
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+    .welcome-step-desc {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    /* ── Download card ── */
+    .download-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .download-card-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    .download-card-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+    .download-card-desc {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    /* ── Footer ── */
     .footer-text {
         color: #94A3B8;
         font-size: 0.8rem;
@@ -379,27 +660,43 @@ def fetch_and_process_from_notion(_token: str, ref_date: date):
 # ============================================
 # 主内容区
 # ============================================
-st.markdown('<h1 class="main-header">📊 团队工时分析系统</h1>', unsafe_allow_html=True)
-st.markdown('<p class="main-subtitle">实时追踪团队工时数据，智能分析工作负荷与项目投入</p>', unsafe_allow_html=True)
+st.markdown('''
+<div class="hero-section">
+    <h1 class="main-header">📊 团队工时分析系统</h1>
+    <p class="main-subtitle">实时追踪团队工时数据，智能分析工作负荷与项目投入</p>
+</div>
+''', unsafe_allow_html=True)
 
 # 门控：未开始分析时显示欢迎页
 if not st.session_state.analysis_started:
-    st.info("👈 请在左侧配置数据来源和分析周，然后点击「开始分析」")
+    st.markdown("#### 三步开始分析")
 
-    with st.expander("📖 使用说明", expanded=True):
+    cols = st.columns(3)
+    steps = [
+        ("1️⃣", "选择数据源", "Notion 直连、预生成报告或 CSV 上传"),
+        ("2️⃣", "选择分析周", "选任意一天，自动计算周一~周日"),
+        ("3️⃣", "开始分析", "一键生成完整的工时分析报告"),
+    ]
+    for col, (icon, title, desc) in zip(cols, steps):
+        with col:
+            st.markdown(f'''
+            <div class="welcome-step">
+                <div class="welcome-step-icon">{icon}</div>
+                <div class="welcome-step-title">{title}</div>
+                <div class="welcome-step-desc">{desc}</div>
+            </div>
+            ''', unsafe_allow_html=True)
+
+    st.markdown("")
+
+    with st.expander("📖 数据来源说明"):
         st.markdown("""
-        ### 快速开始
-
-        1. **选择数据来源**：Notion 直连、预生成报告或 CSV 上传
-        2. **选择分析周**：选择该周内的任意一天，系统自动计算周一~周日范围
-        3. **点击开始分析**：系统加载数据并生成分析报告
-
-        ### 数据来源说明
-
         - **预生成报告**：读取 GitHub Actions 定时生成的快照，秒开
         - **Notion 直连**：实时拉取最新数据（需配置 API Token）
         - **CSV 上传**：手动上传从 Notion 导出的 CSV 文件
         """)
+
+    st.info("👈 请在左侧配置数据来源和分析周，然后点击「开始分析」")
 
     st.stop()
 
@@ -548,7 +845,7 @@ with tab1:
                 '类型': m.type,
                 '总工时': f"{m.total_hours}h",
                 '标准工时': f"{m.standard_hours}h" if m.standard_hours else "N/A",
-                '达成率': f"{m.achievement_rate}%" if m.achievement_rate else "N/A",
+                '达成率': m.achievement_rate if m.achievement_rate else 0,
                 '日均': f"{m.daily_avg}h",
                 '任务数': m.task_count,
                 '状态': m.status
@@ -561,6 +858,13 @@ with tab1:
             use_container_width=True,
             hide_index=True,
             column_config={
+                '达成率': st.column_config.ProgressColumn(
+                    "达成率",
+                    help="工时达成百分比",
+                    min_value=0,
+                    max_value=150,
+                    format="%d%%",
+                ),
                 '状态': st.column_config.TextColumn(width='medium')
             }
         )
@@ -749,7 +1053,7 @@ with tab3:
         r1c1, r1c2 = st.columns(2)
 
         with r1c1:
-            st.markdown("##### 👥 人员工时柱状图")
+            st.markdown('<div class="chart-card"><div class="chart-card-header">👥 人员工时柱状图</div><div class="chart-card-body">', unsafe_allow_html=True)
             bar_data = pd.DataFrame([
                 {'成员': m.name, '实际工时': m.total_hours,
                  '标准工时': m.standard_hours if m.standard_hours else 0,
@@ -767,9 +1071,10 @@ with tab3:
                 tooltip=['成员', '类型', '工时', '达成率']
             ).properties(height=max(len(current_members) * 35, 200))
             st.altair_chart(chart_bar, use_container_width=True)
+            st.markdown('</div></div>', unsafe_allow_html=True)
 
         with r1c2:
-            st.markdown("##### 🍩 项目工时分布")
+            st.markdown('<div class="chart-card"><div class="chart-card-header">🍩 项目工时分布</div><div class="chart-card-body">', unsafe_allow_html=True)
             top_n = 8
             donut_items = []
             other_hours = 0.0
@@ -787,12 +1092,13 @@ with tab3:
                 tooltip=['项目', '工时']
             ).properties(height=300)
             st.altair_chart(chart_donut, use_container_width=True)
+            st.markdown('</div></div>', unsafe_allow_html=True)
 
         # --- Row 2 ---
         r2c1, r2c2 = st.columns(2)
 
         with r2c1:
-            st.markdown("##### 📏 工时达成率")
+            st.markdown('<div class="chart-card"><div class="chart-card-header">📏 工时达成率</div><div class="chart-card-body">', unsafe_allow_html=True)
             rate_data = pd.DataFrame([
                 {'成员': m.name, '达成率': m.achievement_rate if m.achievement_rate else 0}
                 for m in current_members if m.standard_hours and m.standard_hours > 0
@@ -825,9 +1131,10 @@ with tab3:
                 st.altair_chart(bars + rules, use_container_width=True)
             else:
                 st.info("无达成率数据")
+            st.markdown('</div></div>', unsafe_allow_html=True)
 
         with r2c2:
-            st.markdown("##### 🏷️ 项目属性分布")
+            st.markdown('<div class="chart-card"><div class="chart-card-header">🏷️ 项目属性分布</div><div class="chart-card-body">', unsafe_allow_html=True)
             attr_data = analyzer.analyze_by_attribute("本周")
             if attr_data:
                 attr_df = pd.DataFrame([
@@ -843,12 +1150,13 @@ with tab3:
                 st.altair_chart(chart_attr, use_container_width=True)
             else:
                 st.info("无属性数据")
+            st.markdown('</div></div>', unsafe_allow_html=True)
 
         # --- Row 3 ---
         r3c1, r3c2 = st.columns(2)
 
         with r3c1:
-            st.markdown("##### 📈 每日工时趋势")
+            st.markdown('<div class="chart-card"><div class="chart-card-header">📈 每日工时趋势</div><div class="chart-card-body">', unsafe_allow_html=True)
             trend = df_current.groupby('日期_date')['工时 h'].sum().reset_index()
             trend.columns = ['日期', '工时']
             trend = trend.sort_values('日期')
@@ -863,9 +1171,10 @@ with tab3:
                 tooltip=[alt.Tooltip('日期:T', format='%m-%d'), '工时']
             )
             st.altair_chart(area + line, use_container_width=True)
+            st.markdown('</div></div>', unsafe_allow_html=True)
 
         with r3c2:
-            st.markdown("##### 🎯 优先级分布")
+            st.markdown('<div class="chart-card"><div class="chart-card-header">🎯 优先级分布</div><div class="chart-card-body">', unsafe_allow_html=True)
             priority_data = analyzer.analyze_by_priority("本周")
             if priority_data:
                 pri_df = pd.DataFrame([
@@ -881,10 +1190,11 @@ with tab3:
                 st.altair_chart(chart_pri, use_container_width=True)
             else:
                 st.info("无优先级数据")
+            st.markdown('</div></div>', unsafe_allow_html=True)
 
         # --- 底部全宽：热力图 ---
         st.divider()
-        st.markdown("##### 🔥 工作强度热力图")
+        st.markdown('<div class="chart-card"><div class="chart-card-header">🔥 工作强度热力图</div><div class="chart-card-body">', unsafe_allow_html=True)
         heat_df = df_current.groupby(['成员_中文', '日期_date'])['工时 h'].sum().reset_index()
         heat_df.columns = ['成员', '日期', '工时']
 
@@ -908,6 +1218,7 @@ with tab3:
             (heat_rect + heat_text).properties(height=max(heat_df['成员'].nunique() * 35, 200)),
             use_container_width=True
         )
+        st.markdown('</div></div>', unsafe_allow_html=True)
     else:
         st.info("本周暂无数据，无法生成图表")
 
@@ -916,27 +1227,50 @@ with tab3:
 # ============================================
 with tab4:
     if next_summary['total_hours'] > 0:
-        st.metric("预计总工时", f"{next_summary['total_hours']} h")
-        
+        # 概览指标行
+        nc1, nc2, nc3 = st.columns(3)
+        with nc1:
+            st.metric("预计总工时", f"{next_summary['total_hours']} h")
+        with nc2:
+            st.metric("参与人数", f"{next_summary.get('member_count', len(next_members))} 人")
+        with nc3:
+            st.metric("涉及项目", f"{next_summary.get('project_count', len(next_projects))} 个")
+
+        st.divider()
+
         col1, col2 = st.columns(2)
-        
+
         with col1:
-            st.subheader("👥 人员安排")
+            st.markdown('<div class="chart-card"><div class="chart-card-header">👥 人员工时安排</div><div class="chart-card-body">', unsafe_allow_html=True)
             if next_members:
-                next_member_df = pd.DataFrame([
-                    {'成员': m.name, '预计工时': f"{m.total_hours}h"}
+                next_bar_data = pd.DataFrame([
+                    {'成员': m.name, '预计工时': m.total_hours}
                     for m in next_members
                 ])
-                st.dataframe(next_member_df, use_container_width=True, hide_index=True)
-        
+                chart_next_member = alt.Chart(next_bar_data).mark_bar(cornerRadiusEnd=4).encode(
+                    y=alt.Y('成员:N', sort='-x', title=None),
+                    x=alt.X('预计工时:Q', title='工时 (h)'),
+                    color=alt.value('#4F46E5'),
+                    tooltip=['成员', '预计工时']
+                ).properties(height=max(len(next_members) * 35, 150))
+                st.altair_chart(chart_next_member, use_container_width=True)
+            st.markdown('</div></div>', unsafe_allow_html=True)
+
         with col2:
-            st.subheader("📁 主要项目")
+            st.markdown('<div class="chart-card"><div class="chart-card-header">📁 项目工时安排</div><div class="chart-card-body">', unsafe_allow_html=True)
             if next_projects:
-                next_project_df = pd.DataFrame([
-                    {'项目': p.name[:30], '预计工时': f"{p.total_hours}h"}
+                next_proj_data = pd.DataFrame([
+                    {'项目': p.name[:25], '预计工时': p.total_hours}
                     for p in next_projects[:8]
                 ])
-                st.dataframe(next_project_df, use_container_width=True, hide_index=True)
+                chart_next_proj = alt.Chart(next_proj_data).mark_bar(cornerRadiusEnd=4).encode(
+                    y=alt.Y('项目:N', sort='-x', title=None),
+                    x=alt.X('预计工时:Q', title='工时 (h)'),
+                    color=alt.value('#7C3AED'),
+                    tooltip=['项目', '预计工时']
+                ).properties(height=max(len(next_projects[:8]) * 35, 150))
+                st.altair_chart(chart_next_proj, use_container_width=True)
+            st.markdown('</div></div>', unsafe_allow_html=True)
     else:
         st.info("暂无下周工时安排数据")
 
@@ -1080,7 +1414,7 @@ with tab5:
 # Tab 6: 报告下载
 # ============================================
 with tab6:
-    st.subheader("📄 生成 Markdown 报告")
+    st.subheader("📄 报告与数据导出")
 
     # 获取 AI 洞察（如果有）
     ai_insights = st.session_state.get('ai_insights', None)
@@ -1102,45 +1436,72 @@ with tab6:
         ai_insights=ai_insights,
         df=df
     )
-    
-    # 预览
-    with st.expander("📖 报告预览", expanded=False):
-        st.markdown(report_content)
-    
-    # 下载按钮
-    st.download_button(
-        label="📥 下载 Markdown 报告",
-        data=report_content,
-        file_name=f"工时分析报告_{reference_date.strftime('%Y%m%d')}.md",
-        mime="text/markdown"
-    )
-    
+
+    # 报告预览卡片
+    st.markdown('<div class="chart-card"><div class="chart-card-header">📖 报告预览</div><div class="chart-card-body" style="padding:1rem 1.25rem; max-height:400px; overflow-y:auto;">', unsafe_allow_html=True)
+    st.markdown(report_content)
+    st.markdown('</div></div>', unsafe_allow_html=True)
+
     st.divider()
-    
-    # 原始数据下载
-    st.subheader("📊 原始数据下载")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
+
+    # 下载区域 — 三列卡片布局
+    dl1, dl2, dl3 = st.columns(3)
+
+    with dl1:
+        st.markdown('''
+        <div class="download-card">
+            <div class="download-card-icon">📝</div>
+            <div class="download-card-title">Markdown 报告</div>
+            <div class="download-card-desc">包含完整分析、图表描述与建议</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        st.download_button(
+            label="📥 下载报告",
+            data=report_content,
+            file_name=f"工时分析报告_{reference_date.strftime('%Y%m%d')}.md",
+            mime="text/markdown",
+            use_container_width=True
+        )
+
+    with dl2:
+        st.markdown('''
+        <div class="download-card">
+            <div class="download-card-icon">📊</div>
+            <div class="download-card-title">本周原始数据</div>
+            <div class="download-card-desc">CSV 格式，可导入 Excel 分析</div>
+        </div>
+        ''', unsafe_allow_html=True)
         if len(df_current) > 0:
             csv_current = df_current.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
-                label="📥 下载本周数据 (CSV)",
+                label="📥 下载本周数据",
                 data=csv_current,
                 file_name=f"本周工时数据_{reference_date.strftime('%Y%m%d')}.csv",
-                mime="text/csv"
+                mime="text/csv",
+                use_container_width=True
             )
-    
-    with col2:
+        else:
+            st.caption("暂无本周数据")
+
+    with dl3:
+        st.markdown('''
+        <div class="download-card">
+            <div class="download-card-icon">📅</div>
+            <div class="download-card-title">下周计划数据</div>
+            <div class="download-card-desc">CSV 格式，下周工时安排明细</div>
+        </div>
+        ''', unsafe_allow_html=True)
         if len(df_next) > 0:
             csv_next = df_next.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
-                label="📥 下载下周数据 (CSV)",
+                label="📥 下载下周数据",
                 data=csv_next,
                 file_name=f"下周工时数据_{reference_date.strftime('%Y%m%d')}.csv",
-                mime="text/csv"
+                mime="text/csv",
+                use_container_width=True
             )
+        else:
+            st.caption("暂无下周数据")
 
 # ============================================
 # 页脚

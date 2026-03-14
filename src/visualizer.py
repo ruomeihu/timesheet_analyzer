@@ -37,6 +37,21 @@ def setup_chinese_font():
 # 初始化字体
 setup_chinese_font()
 
+# 统一调色板
+COLORS = {
+    'primary': '#4F46E5',       # Indigo
+    'primary_light': '#818CF8', # Light indigo
+    'secondary': '#7C3AED',     # Violet
+    'success': '#059669',       # Emerald
+    'warning': '#D97706',       # Amber
+    'danger': '#DC2626',        # Red
+    'neutral': '#94A3B8',       # Slate
+    'bg': '#F8FAFC',            # Light background
+    'text': '#1E293B',          # Dark text
+}
+PALETTE = ['#4F46E5', '#7C3AED', '#06B6D4', '#059669', '#D97706',
+           '#EC4899', '#F43F5E', '#8B5CF6', '#14B8A6', '#F59E0B']
+
 
 def create_visualizations(
     df: pd.DataFrame,
@@ -66,8 +81,9 @@ def create_visualizations(
     plt.Figure or None
         如果 return_fig=True，返回 Figure 对象
     """
-    fig = plt.figure(figsize=(18, 12))
-    fig.suptitle('团队工时分析报告', fontsize=16, fontweight='bold', y=0.98)
+    fig = plt.figure(figsize=(18, 12), facecolor='white')
+    fig.suptitle('团队工时分析报告', fontsize=16, fontweight='bold', y=0.98,
+                 color=COLORS['text'])
     
     # 1. 人员工时柱状图
     ax1 = plt.subplot(2, 3, 1)
@@ -120,8 +136,10 @@ def _plot_member_hours(ax: plt.Axes, results: List) -> None:
     x = np.arange(len(names))
     width = 0.35
     
-    bars1 = ax.bar(x - width/2, hours, width, label='实际工时', color='steelblue', alpha=0.8)
-    bars2 = ax.bar(x + width/2, standards, width, label='标准工时', color='lightgray', alpha=0.8)
+    bars1 = ax.bar(x - width/2, hours, width, label='实际工时',
+                   color=COLORS['primary'], alpha=0.85, edgecolor='white', linewidth=0.5)
+    bars2 = ax.bar(x + width/2, standards, width, label='标准工时',
+                   color=COLORS['neutral'], alpha=0.5, edgecolor='white', linewidth=0.5)
     
     ax.set_xlabel('成员')
     ax.set_ylabel('工时 (小时)')
@@ -159,7 +177,7 @@ def _plot_project_pie(ax: plt.Axes, results: List) -> None:
         names.append('其他')
         hours.append(other_hours)
     
-    colors = plt.cm.Set3(np.linspace(0, 1, len(names)))
+    colors = [PALETTE[i % len(PALETTE)] for i in range(len(names))]
     
     wedges, texts, autotexts = ax.pie(
         hours, 
@@ -188,9 +206,10 @@ def _plot_daily_trend(ax: plt.Axes, df: pd.DataFrame) -> None:
     
     daily_hours = df.groupby('日期')['工时 h'].sum().sort_index()
     
-    ax.plot(daily_hours.index, daily_hours.values, 
-            marker='o', linewidth=2, markersize=8, color='steelblue')
-    ax.fill_between(daily_hours.index, 0, daily_hours.values, alpha=0.3, color='steelblue')
+    ax.plot(daily_hours.index, daily_hours.values,
+            marker='o', linewidth=2.5, markersize=7, color=COLORS['primary'],
+            markerfacecolor='white', markeredgewidth=2, markeredgecolor=COLORS['primary'])
+    ax.fill_between(daily_hours.index, 0, daily_hours.values, alpha=0.15, color=COLORS['primary'])
     
     ax.set_xlabel('日期')
     ax.set_ylabel('总工时')
@@ -216,11 +235,11 @@ def _plot_achievement_rate(ax: plt.Axes, results: List) -> None:
     colors = []
     for rate in rates:
         if rate >= 120:
-            colors.append('#e74c3c')  # 红色 - 超负荷
+            colors.append(COLORS['danger'])
         elif rate <= 70:
-            colors.append('#f39c12')  # 橙色 - 偏低
+            colors.append(COLORS['warning'])
         else:
-            colors.append('#27ae60')  # 绿色 - 正常
+            colors.append(COLORS['success'])
     
     bars = ax.barh(names, rates, color=colors, alpha=0.8)
     
@@ -247,8 +266,9 @@ def _plot_attribute_distribution(ax: plt.Axes, df: pd.DataFrame) -> None:
     
     attr_hours = df.groupby('项目属性')['工时 h'].sum().sort_values(ascending=True)
     
-    colors = plt.cm.Pastel1(np.linspace(0, 1, len(attr_hours)))
-    bars = ax.barh(attr_hours.index, attr_hours.values, color=colors, alpha=0.8)
+    colors = [PALETTE[i % len(PALETTE)] for i in range(len(attr_hours))]
+    bars = ax.barh(attr_hours.index, attr_hours.values, color=colors, alpha=0.85,
+                   edgecolor='white', linewidth=0.5)
     
     ax.set_xlabel('工时')
     ax.set_title('项目属性分布')
@@ -275,7 +295,10 @@ def _plot_heatmap(ax: plt.Axes, df: pd.DataFrame) -> None:
         fill_value=0
     )
     
-    im = ax.imshow(pivot_data.values, cmap='YlOrRd', aspect='auto')
+    from matplotlib.colors import LinearSegmentedColormap
+    custom_cmap = LinearSegmentedColormap.from_list(
+        'indigo_heat', ['#F1F5F9', '#C7D2FE', '#818CF8', '#4F46E5', '#3730A3'])
+    im = ax.imshow(pivot_data.values, cmap=custom_cmap, aspect='auto')
     
     ax.set_xticks(range(len(pivot_data.columns)))
     ax.set_xticklabels(pivot_data.columns, rotation=45, ha='right')

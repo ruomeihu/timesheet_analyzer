@@ -47,6 +47,12 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - **visualizer.py** — matplotlib 图表生成，`create_visualizations()` 生成组合图，`create_single_chart()` 生成单图
 - **report_generator.py** — `generate_markdown_report()` 生成 Markdown 报告，支持 next_week 和 ai_insights 可选参数
 
+### 主题与样式
+
+- `.streamlit/config.toml` — Streamlit 主题配置（indigo 主色、浅色背景、slate 文字色）
+- `app.py` 内嵌 CSS — 自定义 metric 卡片、tab 栏、按钮、侧边栏等组件样式
+- `src/visualizer.py` 中 `COLORS` dict 和 `PALETTE` list — 图表统一调色板，所有图表颜色从此处引用
+
 ### 配置 (`config/`)
 
 - `employees.yaml` — 员工列表（中英文名、类型、标准工时、入职日期、请假记录）+ 全局默认值（阈值、AI 模型配置）+ 项目分类关键词

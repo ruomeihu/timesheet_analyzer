@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(streamlit run:*)",
+      "Bash(git add:*)",
+      "WebSearch",
+      "Bash(git commit:*)"
     ]
   }
 }

@@ -115,6 +115,30 @@ employees:
       - "数据技术"
     onboard_date: "2026-02-04"  # 入职日期
 
+  - name_cn: "赵启"
+    name_en: "赵启"
+    type: "全职"
+    standard_hours: 40
+    department: "数据平台部"
+    position: "医学数据产品经理"
+    responsibilities:
+      - "数据归一"
+      - "数据标准化"
+      - "数据模型"
+      - "数据产品定义"
+    onboard_date: "2026-04-01"  # 入职日期
+
+  - name_cn: "李倩"
+    name_en: "qian li"
+    type: "全职"
+    standard_hours: 40
+    department: "数据平台部"
+    position: "内容运营经理（兼职）"
+    responsibilities:
+      - "微信公众号运营"
+      - "平面设计"
+
+
   # === 兼职员工 ===
   - name_cn: "聂鑫"
     name_en: "xin nie"
@@ -127,16 +151,7 @@ employees:
       - "技术调研"
       - "咨询项目交付"
 
-  # === 按需员工 ===
-  - name_cn: "李倩"
-    name_en: "qian li"
-    type: "按需"
-    standard_hours: null   # 按需员工没有固定工时
-    department: "商务合作部"
-    position: "内容运营经理（兼职）"
-    responsibilities:
-      - "微信公众号运营"
-      - "平面设计"
+  
 
 # ============================================
 # 如何添加新员工？

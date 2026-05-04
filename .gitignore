@@ -25,3 +25,4 @@ output/
 
 # 数据文件
 data/
+.claude/settings.local.json

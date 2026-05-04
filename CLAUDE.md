@@ -70,3 +70,28 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - API Token 通过 Streamlit secrets (`st.secrets`) 或环境变量 (`os.getenv`) 读取，优先 secrets
 - `@st.cache_data` 用于缓存数据加载，Notion 直连 TTL=300 秒
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`
+
+## When Making Changes
+
+- Always read existing code before modifying — understand the context first
+- Show me a brief plan before writing code, wait for confirmation
+- Use `git diff` to show me what you changed after each file modification
+- Run a quick smoke test if applicable (e.g., `streamlit run app.py` to verify UI loads)
+- Make small, focused commits — one logical change per commit
+- Use Conventional Commits prefixes: feat: / fix: / chore: / docs: / refactor:
+
+## Important: Never Commit
+- `.env` file (contains API keys)
+- Any hardcoded API keys, tokens, or passwords in code
+- Files matching patterns in `.gitignore`
+
+## Branch Workflow
+- Never commit directly to main
+- Create feature branch: `git checkout -b feat/xxx` or `fix/xxx`
+- Make changes, commit, push, create PR on GitHub
+- Self-review the PR before merging
+
+## Known Issues / Tech Debt
+
+- [ ] `auto_weekly_report.py` does not include AI analysis (planned fix in Phase 3)
+- [ ] Email/Webhook notifications are coded but disabled (planned activation in Phase 3)

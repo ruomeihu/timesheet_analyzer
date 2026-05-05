@@ -1438,9 +1438,8 @@ with tab6:
     )
 
     # 报告预览卡片
-    st.markdown('<div class="chart-card"><div class="chart-card-header">📖 报告预览</div><div class="chart-card-body" style="padding:1rem 1.25rem; max-height:400px; overflow-y:auto;">', unsafe_allow_html=True)
-    st.markdown(report_content)
-    st.markdown('</div></div>', unsafe_allow_html=True)
+    with st.expander("📖 报告预览", expanded=True):
+        st.markdown(report_content)
 
     st.divider()
 

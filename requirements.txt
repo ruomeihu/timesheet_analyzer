@@ -8,6 +8,7 @@ seaborn>=0.12.0
 
 # 配置文件解析
 pyyaml>=6.0
+ruamel.yaml>=0.18.0  # 保留 YAML 注释和格式（用于前端写回 employees.yaml）
 
 # Web 前端
 streamlit>=1.28.0

@@ -21,7 +21,7 @@ from src.preprocessor import preprocess_data, filter_by_period
 from src.analyzer import TimesheetAnalyzer
 from src.visualizer import create_visualizations, create_single_chart
 from src.report_generator import generate_markdown_report
-from config import get_employees_config
+from config import get_employees_config, add_employee_leave
 
 # ============================================
 # Altair 主题
@@ -882,13 +882,14 @@ if current_summary['date_range']:
 st.divider()
 
 # 标签页
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "👥 人员分析",
     "📁 项目分析",
     "📊 图表中心",
     "📅 下周安排",
     "🤖 AI 深度分析",
-    "📄 报告下载"
+    "📄 报告下载",
+    "🏖️ 请假登记"
 ])
 
 # ============================================
@@ -1578,6 +1579,81 @@ with tab6:
             )
         else:
             st.caption("暂无下周数据")
+
+# ============================================
+# Tab 7: 请假登记
+# ============================================
+with tab7:
+    st.subheader("🏖️ 员工请假登记")
+    st.caption("登记后将写入 config/employees.yaml，自动用于工时达成率计算。")
+
+    employees_cfg = get_employees_config()
+    employee_options = [emp.get('name_cn') for emp in employees_cfg.get('employees', []) if emp.get('name_cn')]
+
+    if not employee_options:
+        st.warning("未在 employees.yaml 中找到任何员工。")
+    else:
+        with st.form("leave_entry_form", clear_on_submit=True):
+            fc1, fc2 = st.columns(2)
+            with fc1:
+                selected_name = st.selectbox("员工姓名", employee_options)
+                leave_type = st.selectbox("请假类型", ["年假", "病假", "事假", "调休"])
+            with fc2:
+                leave_start = st.date_input("请假开始日期", value=reference_date)
+                leave_end = st.date_input("请假结束日期", value=reference_date)
+
+            note_text = st.text_area("备注（可选）", placeholder="例如：陪家人就医", height=80)
+            submitted = st.form_submit_button("✅ 提交请假登记", use_container_width=True)
+
+            if submitted:
+                if leave_end < leave_start:
+                    st.error("❌ 请假结束日期不能早于开始日期。")
+                else:
+                    try:
+                        add_employee_leave(
+                            name_cn=selected_name,
+                            start=leave_start.strftime('%Y-%m-%d'),
+                            end=leave_end.strftime('%Y-%m-%d'),
+                            leave_type=leave_type,
+                            note=note_text.strip(),
+                        )
+                        days = (leave_end - leave_start).days + 1
+                        st.success(
+                            f"✅ 已登记成功：{selected_name} 「{leave_type}」"
+                            f" {leave_start} → {leave_end}（共 {days} 天）。"
+                        )
+                    except Exception as e:
+                        st.error(f"❌ 写入失败：{e}")
+
+        st.divider()
+
+        # 显示该员工已有请假记录（重新加载以反映刚刚的写入）
+        view_name = st.selectbox(
+            "查看员工已有请假记录",
+            employee_options,
+            index=employee_options.index(selected_name) if 'selected_name' in locals() and selected_name in employee_options else 0,
+            key="leave_view_selector",
+        )
+        latest_cfg = get_employees_config()
+        target_emp = next(
+            (emp for emp in latest_cfg.get('employees', []) if emp.get('name_cn') == view_name),
+            None,
+        )
+        existing_leaves = (target_emp or {}).get('leaves') or []
+
+        if existing_leaves:
+            leaves_df = pd.DataFrame([
+                {
+                    "开始": lv.get('start'),
+                    "结束": lv.get('end'),
+                    "类型": lv.get('type'),
+                    "备注": lv.get('note', ''),
+                }
+                for lv in existing_leaves
+            ])
+            st.dataframe(leaves_df, use_container_width=True, hide_index=True)
+        else:
+            st.info(f"📭 {view_name} 暂无请假记录。")
 
 # ============================================
 # 页脚

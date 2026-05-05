@@ -129,7 +129,13 @@ def export_from_notion(start_date: str, end_date: str, output_path: str) -> bool
 
 
 def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
-    """运行分析"""
+    """运行分析
+
+    TODO (已知技术债):
+    本函数与 app.py 中 "AI 分析" tab 的核心逻辑重复 (加载/预处理/分析/生成报告)。
+    未来值得抽取一个共用模块 (例如 src/report_pipeline.py), 让两边都调用,
+    避免逻辑漂移。
+    """
     print(f"📊 运行分析...")
     
     try:
@@ -155,6 +161,31 @@ def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
         project_results = analyzer.analyze_projects("本周")
         insights = analyzer.generate_insights("本周")
 
+        # AI 深度分析
+        from src.ai_analyzer import get_ai_analyzer
+
+        ai_analyzer = get_ai_analyzer()
+        ai_insights = None
+        if ai_analyzer is not None:
+            try:
+                print("🤖 调用 AI 分析器...")
+                import time
+                start = time.time()
+                ai_insights = ai_analyzer.analyze(
+                    df=df,
+                    member_results=member_results,
+                    project_results=project_results,
+                    summary=summary,
+                    period="本周"
+                )
+                elapsed = time.time() - start
+                print(f"✅ AI 分析完成, 耗时 {elapsed:.1f}s")
+            except Exception as e:
+                print(f"⚠️ AI 分析失败, 跳过此部分: {e}")
+                ai_insights = None
+        else:
+            print("⚠️ AI 分析器不可用 (anthropic 库或 API key 缺失), 跳过此部分")
+
         # 下周分析
         next_summary = analyzer.get_summary("下周")
         next_members = analyzer.analyze_members("下周")
@@ -173,6 +204,7 @@ def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
             next_week_summary=next_summary,
             next_week_members=next_members,
             next_week_projects=next_projects,
+            ai_insights=ai_insights,
             df=df
         )
         save_report(report_content, Path(report_path))

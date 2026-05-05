@@ -3,7 +3,7 @@
 
 生成 Markdown 格式的分析报告，使用 --- 分页以适配 Gamma PPT 生成。
 
-分页方案（14 页）：
+分页方案（13 页）：
   1. 封面 — 标题、分析周期、部门、生成时间
   2. 执行摘要 — 关键指标 + AI 洞察摘要 + 团队状态分布
   3. 人员工时总览 — 汇总表格
@@ -12,12 +12,11 @@
   6. TOP 2 项目明细
   7. TOP 3 + 未立项分析
   8. 超负荷人员分析
-  9. 其他成员分析
-  10. 下周安排
-  11. AI 洞察：预警与行动
-  12. AI 洞察：战略与效率（战略一致性 + 执行效率）
-  13. AI 洞察：健康与合规（团队健康 + 财务合规）
-  14. 优化建议
+  9. 下周安排
+  10. AI 洞察：预警与行动
+  11. AI 洞察：战略与效率（战略一致性 + 执行效率）
+  12. AI 洞察：健康与合规（团队健康 + 财务合规）
+  13. 优化建议
 """
 from datetime import datetime
 from typing import List, Dict, Optional
@@ -182,9 +181,8 @@ def generate_markdown_report(
     if summary.get('date_range'):
         page1.append(f"**分析周期：** {summary['date_range'][0]} 至 {summary['date_range'][1]}")
     page1.append("")
-    page1.append("**部门：** 美年健康研究院 数据平台部")
-    page1.append("")
-    page1.append(f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    page1.append("**美年健康研究院 数据平台部**")
+    page1.append(f"**{datetime.now().strftime('%Y-%m-%d')}**")
     pages.append("\n".join(page1))
 
     # ===== 第 2 页：执行摘要 =====
@@ -307,19 +305,7 @@ def generate_markdown_report(
             page8.extend(_generate_member_detail(df_period, m))
         pages.append("\n".join(page8))
 
-        # ===== 第 9 页：其他成员分析 =====
-        overloaded_names = {m.name for m in overloaded_members}
-        other_members = [m for m in member_results if m.name not in overloaded_names]
-
-        if other_members:
-            page9 = []
-            page9.append("## 📋 其他成员分析")
-            page9.append("")
-            for m in other_members:
-                page9.extend(_generate_member_detail(df_period, m))
-            pages.append("\n".join(page9))
-
-    # ===== 第 10 页：下周安排 =====
+    # ===== 第 9 页：下周安排 =====
     if next_week_summary and next_week_summary.get('total_hours', 0) > 0:
         page10 = []
         page10.append("## 📅 下周工时安排")
@@ -351,7 +337,7 @@ def generate_markdown_report(
     if ai_insights:
         qs = ai_insights.quick_scan
 
-        # 第 11 页：预警与行动
+        # 第 10 页：预警与行动
         page11 = []
         page11.append("## 🤖 AI 洞察：预警与行动")
         page11.append("")
@@ -374,7 +360,7 @@ def generate_markdown_report(
 
         pages.append("\n".join(page11))
 
-        # 第 12 页：战略一致性 + 执行效率
+        # 第 11 页：战略一致性 + 执行效率
         dims = ai_insights.dimensions
         first_half = [d for d in dims if d.dimension in ('战略一致性', '执行效率与模式')]
         second_half = [d for d in dims if d.dimension not in ('战略一致性', '执行效率与模式')]
@@ -409,7 +395,7 @@ def generate_markdown_report(
 
             pages.append("\n".join(page12))
 
-        # 第 13 页：团队健康 + 财务合规
+        # 第 12 页：团队健康 + 财务合规
         if second_half:
             page13 = []
             page13.append("## 🤖 AI 洞察：健康与合规")
@@ -434,7 +420,7 @@ def generate_markdown_report(
 
             pages.append("\n".join(page13))
 
-        # 第 14 页：优化建议
+        # 第 13 页：优化建议
         if ai_insights.recommendations:
             page14 = []
             page14.append("## 📋 优化建议")

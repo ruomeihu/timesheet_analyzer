@@ -480,6 +480,83 @@ st.markdown("""
         text-align: center;
         padding: 1rem 0;
     }
+
+    /* ── Responsive: tablet (≤1024px) — collapse horizontal blocks to single column ── */
+    @media (max-width: 1024px) {
+        [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        [data-testid="stHorizontalBlock"] > div {
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+        .hero-section {
+            padding: 1.5rem 1.5rem;
+        }
+    }
+
+    /* ── Responsive: mobile (≤768px) ── */
+    @media (max-width: 768px) {
+        /* Hero compaction */
+        .hero-section {
+            padding: 1.25rem 1rem;
+            border-radius: 12px;
+        }
+        .main-header {
+            font-size: 1.6rem;
+        }
+        .main-subtitle {
+            font-size: 0.85rem;
+        }
+
+        /* Metric cards: tighter padding, smaller value (min 12px enforced) */
+        [data-testid="stMetric"] {
+            padding: 0.75rem 0.9rem;
+        }
+        [data-testid="stMetricValue"] {
+            font-size: 1.4rem;
+        }
+        [data-testid="stMetricLabel"] {
+            font-size: 0.78rem;
+        }
+
+        /* Tab bar: horizontal scroll instead of wrapping */
+        .stTabs [data-baseweb="tab-list"] {
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+        .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+            height: 4px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* Tables & charts: never overflow viewport */
+        [data-testid="stDataFrame"],
+        [data-testid="stVegaLiteChart"] {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        [data-testid="stVegaLiteChart"] {
+            padding: 0.5rem;
+        }
+
+        /* Welcome / download cards: tighter padding */
+        .welcome-step {
+            padding: 1.25rem 0.75rem;
+        }
+        .download-card {
+            padding: 1rem;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 

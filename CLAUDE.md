@@ -70,6 +70,18 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - API Token 通过 Streamlit secrets (`st.secrets`) 或环境变量 (`os.getenv`) 读取，优先 secrets
 - `@st.cache_data` 用于缓存数据加载，Notion 直连 TTL=300 秒
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`
+- `reference_date` in `app.py` is independent of the "预生成报告" CSV picker. When matching dated artifacts (e.g., `reports/report_YYYYMMDD.json` sidecar), match by ISO week not exact date — derive Monday-of-week from both sides.
+
+## Environment Variables
+
+All read via `os.getenv()` (Streamlit also accepts `st.secrets`):
+
+- `NOTION_API_TOKEN` — required for Notion API
+- `ANTHROPIC_API_KEY` — Claude AI deep analysis; missing → graceful skip
+- `MAIL_SENDER` — 126 邮箱授权码 (not login password); missing → email skipped
+- `GAMMA_API_KEY` — Gamma Pro+ key for online PPT; missing → skip with warning
+
+All four must also live in GitHub Actions secrets for the Friday CI workflow to use them.
 
 ## When Making Changes
 
@@ -77,6 +89,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - Show me a brief plan before writing code, wait for confirmation
 - Use `git diff` to show me what you changed after each file modification
 - Run a quick smoke test if applicable (e.g., `streamlit run app.py` to verify UI loads)
+- For new external API integrations: verify in this order — (1) env-var-missing path returns None gracefully, (2) minimal isolated call (e.g. `python -c "from src.X import fn; fn(minimal_input)"`), (3) full pipeline e2e
 - Make small, focused commits — one logical change per commit
 - Use Conventional Commits prefixes: feat: / fix: / chore: / docs: / refactor:
 
@@ -95,7 +108,10 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 - [ ] Webhook notifications are coded but disabled (planned activation in Phase 3). Email is active via 126 SMTP (smtp.126.com:465 SSL) using `MAIL_SENDER` env var
 - [ ] `run_analysis()` in `auto_weekly_report.py` duplicates the pipeline used by `app.py`'s AI 分析 tab — candidate for extraction to `src/report_pipeline.py`
+- [ ] CI `git add reports/` commits the Gamma PDF every Friday (~4 MB/week, ~200 MB/year). Consider git LFS or `.gitignore reports/*.pdf` (would break Streamlit Cloud's PDF download button)
 
 ## Gamma Integration
 
 `auto_weekly_report.py` calls Gamma Generate API (via `src/gamma_client.py`) to turn the Markdown report into an online presentation. Sidecar `reports/report_YYYYMMDD.json` stores `gammaUrl` / `exportUrl` so `app.py` Tab 6 can embed the deck via iframe. Requires `GAMMA_API_KEY` env var (Gamma Pro+); falls back to skip with a warning if missing.
+
+Gamma API quirks: `folderIds` is a JSON array (plural), `themeId` lowercase `d`, generation is async with polling at `GET /v1.0/generations/{id}`, embed URL = `gammaUrl.replace("/docs/", "/embed/")`.

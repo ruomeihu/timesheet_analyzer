@@ -43,16 +43,14 @@ CONFIG = {
     # 输出目录（报告保存位置）
     "output_dir": os.path.expanduser("~/Documents/MIH_Reports"),
     
-    # 邮件配置（如果需要邮件通知）
+    # 邮件配置（126 邮箱 SSL）
     "email": {
-        "enabled": False,  # 改为 True 启用邮件
-        "smtp_server": "smtp.qq.com",  # QQ邮箱
-        # "smtp_server": "smtp.163.com",  # 163邮箱
-        # "smtp_server": "smtp.gmail.com",  # Gmail
-        "smtp_port": 587,
-        "sender_email": "",  # 发件人邮箱
-        "sender_password": "",  # 邮箱授权码（不是登录密码）
-        "recipient_emails": [],  # 收件人列表，如 ["a@test.com", "b@test.com"]
+        "enabled": True,
+        "smtp_server": "smtp.126.com",
+        "smtp_port": 465,
+        "sender_email": "mayhu1024@126.com",
+        "sender_password": os.getenv("MAIL_SENDER", ""),  # 126 授权码（不是登录密码）
+        "recipient_emails": ["mayhu1024@126.com"],
     },
     
     # 飞书/钉钉 Webhook（可选）
@@ -252,7 +250,10 @@ def send_email(subject: str, body: str, attachments: list = None):
     if not email_config["sender_email"] or not email_config["recipient_emails"]:
         print("⚠️ 邮件配置不完整，跳过发送")
         return
-    
+    if not email_config["sender_password"]:
+        print("⚠️ 未设置 MAIL_SENDER 环境变量（126 授权码），跳过发送")
+        return
+
     print(f"📧 发送邮件到: {', '.join(email_config['recipient_emails'])}")
     
     try:
@@ -279,9 +280,8 @@ def send_email(subject: str, body: str, attachments: list = None):
                     )
                     msg.attach(part)
         
-        # 发送
-        with smtplib.SMTP(email_config["smtp_server"], email_config["smtp_port"]) as server:
-            server.starttls()
+        # 发送（126 使用 SSL，不是 STARTTLS）
+        with smtplib.SMTP_SSL(email_config["smtp_server"], email_config["smtp_port"]) as server:
             server.login(email_config["sender_email"], email_config["sender_password"])
             server.send_message(msg)
         

@@ -25,6 +25,7 @@ jobs:
         env:
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MAIL_SENDER: ${{ secrets.MAIL_SENDER }}
         run: python auto_weekly_report.py --output-dir ./reports
 
       - name: Commit reports

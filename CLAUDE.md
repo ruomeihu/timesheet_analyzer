@@ -93,5 +93,5 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 ## Known Issues / Tech Debt
 
-- [ ] `auto_weekly_report.py` does not include AI analysis (planned fix in Phase 3)
 - [ ] Email/Webhook notifications are coded but disabled (planned activation in Phase 3)
+- [ ] `run_analysis()` in `auto_weekly_report.py` duplicates the pipeline used by `app.py`'s AI 分析 tab — candidate for extraction to `src/report_pipeline.py`

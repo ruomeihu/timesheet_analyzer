@@ -24,6 +24,7 @@ jobs:
       - name: Generate report
         env:
           NOTION_API_TOKEN: ${{ secrets.NOTION_API_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python auto_weekly_report.py --output-dir ./reports
 
       - name: Commit reports

@@ -5,12 +5,14 @@
     streamlit run app.py
 """
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import altair as alt
 from datetime import date, datetime, timedelta
 from pathlib import Path
 import sys
 import io
+import json
 import os
 
 # 添加项目根目录到路径
@@ -708,6 +710,7 @@ with st.sidebar:
             # 实际加载数据放到主内容区，这里只保存参数
             st.session_state.loaded_data = None
             st.session_state.loaded_meta = None
+            st.session_state.pop('ai_insights', None)  # 强制重跑 AI 分析
             st.rerun()
 
 # ============================================
@@ -827,6 +830,16 @@ consider_leaves = st.session_state.analysis_params['consider_leaves']
 # 分析
 # ============================================
 analyzer = TimesheetAnalyzer(df)
+
+# AI 深度分析自动运行 (与 auto_weekly_report.py 行为一致;失败不阻断主流程)
+if ai_enabled and api_key and 'ai_insights' not in st.session_state:
+    with st.spinner("🤖 正在调用 Claude API 进行深度分析 (约 30-60 秒)..."):
+        try:
+            _ai_result = analyzer.generate_ai_insights("本周", api_key)
+            if _ai_result:
+                st.session_state['ai_insights'] = _ai_result
+        except Exception as _e:
+            st.warning(f"AI 深度分析失败 (不影响其他功能): {_e}")
 
 # 过滤数据
 df_current = filter_by_period(df, "本周")
@@ -1421,68 +1434,57 @@ with tab5:
         - **财务合规**：资本化占比、跨部门支持
         """)
 
-        if st.button("🚀 启动 Claude AI 深度分析", type="primary"):
-            with st.spinner("正在调用 Claude API 进行深度分析，请稍候..."):
-                try:
-                    ai_result = analyzer.generate_ai_insights("本周", api_key)
+        ai_result = st.session_state.get('ai_insights')
 
-                    if ai_result:
-                        # 保存到 session state
-                        st.session_state['ai_insights'] = ai_result
+        if ai_result:
+            st.caption("✅ 分析结果已自动生成 (开始分析时随主流程一起跑)")
+            # 执行摘要
+            st.markdown("#### 📋 执行摘要")
+            st.info(ai_result.executive_summary)
 
-                        # 执行摘要
-                        st.markdown("#### 📋 执行摘要")
-                        st.info(ai_result.executive_summary)
+            # 四维度分析
+            for dim in ai_result.dimensions:
+                with st.expander(f"📊 {dim.dimension}", expanded=True):
+                    for ind in dim.indicators:
+                        ind_icon = {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(
+                            ind.get('severity', 'low'), '⚪'
+                        )
+                        st.markdown(f"**{ind_icon} {ind.get('name', '')}**")
+                        st.write(f"- 当前值: {ind.get('value', 'N/A')}")
+                        st.write(f"- 评估: {ind.get('assessment', 'N/A')}")
+                        st.write(f"- 发现: {ind.get('finding', '')}")
+                        st.divider()
+                    st.markdown(f"*{dim.summary}*")
 
-                        # 四维度分析
-                        for dim in ai_result.dimensions:
-                            severity_color = {
-                                'high': 'red',
-                                'medium': 'orange',
-                                'low': 'green'
-                            }.get(dim.severity, 'gray')
+            # 建议
+            if ai_result.recommendations:
+                st.markdown("#### 💡 优化建议")
+                for rec in ai_result.recommendations:
+                    priority_icon = {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(
+                        rec.get('priority', 'medium'), '⚪'
+                    )
+                    with st.container():
+                        st.markdown(f"**{priority_icon} {rec.get('title', '')}** [{rec.get('category', '')}]")
+                        st.write(rec.get('description', ''))
+                        st.caption(f"预期效果: {rec.get('expected_impact', '')}")
+                        st.divider()
 
-                            with st.expander(f"📊 {dim.dimension}", expanded=True):
-                                for ind in dim.indicators:
-                                    ind_icon = {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(
-                                        ind.get('severity', 'low'), '⚪'
-                                    )
-                                    st.markdown(f"**{ind_icon} {ind.get('name', '')}**")
-                                    st.write(f"- 当前值: {ind.get('value', 'N/A')}")
-                                    st.write(f"- 评估: {ind.get('assessment', 'N/A')}")
-                                    st.write(f"- 发现: {ind.get('finding', '')}")
-                                    st.divider()
-                                st.markdown(f"*{dim.summary}*")
-
-                        # 建议
-                        if ai_result.recommendations:
-                            st.markdown("#### 💡 优化建议")
-                            for rec in ai_result.recommendations:
-                                priority_icon = {
-                                    'high': '🔴',
-                                    'medium': '🟡',
-                                    'low': '🟢'
-                                }.get(rec.get('priority', 'medium'), '⚪')
-
-                                with st.container():
-                                    st.markdown(f"**{priority_icon} {rec.get('title', '')}** [{rec.get('category', '')}]")
-                                    st.write(rec.get('description', ''))
-                                    st.caption(f"预期效果: {rec.get('expected_impact', '')}")
-                                    st.divider()
-
-                        st.success("AI 分析完成！结果已保存，可在报告下载中导出。")
-                    else:
-                        st.error("AI 分析返回空结果，请检查 API Key 是否正确。")
-
-                except Exception as e:
-                    st.error(f"AI 分析出错: {e}")
-                    st.exception(e)
-
-        # 显示之前的分析结果
-        if 'ai_insights' in st.session_state:
-            st.divider()
-            st.markdown("#### 📝 上次分析结果")
-            st.caption("上次 AI 分析的结果已保存，可在报告下载中导出。")
+            if st.button("🔄 重新运行 AI 分析"):
+                st.session_state.pop('ai_insights', None)
+                st.rerun()
+        else:
+            st.info("AI 深度分析未生成 (可能是 API Key 缺失或调用失败)。点击下面按钮手动重试。")
+            if st.button("🚀 立即运行 AI 深度分析", type="primary"):
+                with st.spinner("正在调用 Claude API..."):
+                    try:
+                        _result = analyzer.generate_ai_insights("本周", api_key)
+                        if _result:
+                            st.session_state['ai_insights'] = _result
+                            st.rerun()
+                        else:
+                            st.error("AI 分析返回空结果，请检查 API Key。")
+                    except Exception as e:
+                        st.error(f"AI 分析出错: {e}")
 
             if st.button("清除分析结果"):
                 del st.session_state['ai_insights']
@@ -1515,9 +1517,43 @@ with tab6:
         df=df
     )
 
-    # 报告预览卡片
-    with st.expander("📖 报告预览", expanded=True):
+    # 报告预览卡片 (默认收起,需要时点开)
+    with st.expander("📖 报告预览", expanded=False):
         st.markdown(report_content)
+
+    # Gamma 在线 PPT (按 ISO 周匹配 sidecar, 与 reference_date 落在同一周即可)
+    _ref_monday = reference_date - timedelta(days=reference_date.weekday())
+    _gamma_url = None
+    _matched_date = None
+    for _json_path in Path("reports").glob("report_*.json"):
+        try:
+            _file_date = datetime.strptime(_json_path.stem.replace("report_", ""), "%Y%m%d").date()
+        except ValueError:
+            continue
+        if _file_date - timedelta(days=_file_date.weekday()) == _ref_monday:
+            _matched_date = _file_date
+            try:
+                _gamma_url = json.loads(_json_path.read_text(encoding="utf-8")).get("gammaUrl")
+            except (json.JSONDecodeError, OSError):
+                _gamma_url = None
+            break
+    if _gamma_url:
+        with st.expander("🎬 Gamma 在线 PPT", expanded=True):
+            _embed_url = _gamma_url.replace("/docs/", "/embed/")
+            components.iframe(_embed_url, height=540, scrolling=False)
+            _col_a, _col_b = st.columns([1, 1])
+            with _col_a:
+                st.link_button("✏️ 在 Gamma 中编辑", _gamma_url, use_container_width=True)
+            with _col_b:
+                _pdf_path = Path("reports") / f"report_{_matched_date.strftime('%Y%m%d')}.pdf"
+                if _pdf_path.exists():
+                    st.download_button(
+                        "📥 下载 PPT (PDF)",
+                        data=_pdf_path.read_bytes(),
+                        file_name=_pdf_path.name,
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
 
     st.divider()
 

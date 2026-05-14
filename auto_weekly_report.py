@@ -23,6 +23,7 @@ try:
     load_dotenv()
 except ImportError:
     pass
+import json
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -220,10 +221,34 @@ def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
         print(f"✅ 报告已保存: {report_path}")
         print(f"✅ 图表已保存: {chart_path}")
 
+        # Gamma 在线 PPT (失败不影响主流程)
+        from src.gamma_client import generate_presentation, download_export
+
+        gamma_result = generate_presentation(report_content)
+        gamma_url = gamma_result["gammaUrl"] if gamma_result else None
+        pdf_path = None
+        if gamma_result and gamma_result.get("exportUrl"):
+            pdf_candidate = os.path.join(output_dir, f"report_{date_str}.pdf")
+            if download_export(gamma_result["exportUrl"], pdf_candidate):
+                pdf_path = pdf_candidate
+
+        # 写 JSON sidecar (供 Streamlit 前端读取)
+        sidecar_path = os.path.join(output_dir, f"report_{date_str}.json")
+        with open(sidecar_path, "w", encoding="utf-8") as f:
+            json.dump({
+                "gammaUrl": gamma_url,
+                "exportUrl": gamma_result.get("exportUrl") if gamma_result else None,
+                "generationId": gamma_result.get("generationId") if gamma_result else None,
+                "generatedAt": datetime.now().isoformat(timespec="seconds"),
+            }, f, ensure_ascii=False, indent=2)
+        print(f"✅ Gamma 元数据已保存: {sidecar_path}")
+
         return {
             "success": True,
             "report_path": report_path,
             "chart_path": chart_path,
+            "gamma_url": gamma_url,
+            "pdf_path": pdf_path,
             "summary": {
                 "total_hours": summary['total_hours'],
                 "member_count": summary['member_count'],
@@ -239,14 +264,14 @@ def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-def send_email(subject: str, body: str, attachments: list = None):
-    """发送邮件"""
+def send_email(subject: str, body: str, html_body: str = None, attachments: list = None):
+    """发送邮件 (支持 HTML 正文,链接可点)"""
     if not CONFIG["email"]["enabled"]:
         print("📧 邮件功能未启用")
         return
-    
+
     email_config = CONFIG["email"]
-    
+
     if not email_config["sender_email"] or not email_config["recipient_emails"]:
         print("⚠️ 邮件配置不完整，跳过发送")
         return
@@ -255,15 +280,21 @@ def send_email(subject: str, body: str, attachments: list = None):
         return
 
     print(f"📧 发送邮件到: {', '.join(email_config['recipient_emails'])}")
-    
+
     try:
-        msg = MIMEMultipart()
+        msg = MIMEMultipart("mixed")
         msg["From"] = email_config["sender_email"]
         msg["To"] = ", ".join(email_config["recipient_emails"])
         msg["Subject"] = subject
-        
-        # 邮件正文
-        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        # 正文: multipart/alternative 同时提供 plain + html, 客户端按能力挑
+        if html_body:
+            alt = MIMEMultipart("alternative")
+            alt.attach(MIMEText(body, "plain", "utf-8"))
+            alt.attach(MIMEText(html_body, "html", "utf-8"))
+            msg.attach(alt)
+        else:
+            msg.attach(MIMEText(body, "plain", "utf-8"))
         
         # 附件
         if attachments:
@@ -373,6 +404,14 @@ def main():
     print("\n" + "-" * 40)
     summary = result["summary"]
     
+    gamma_url = result.get("gamma_url")
+    gamma_line = f"🎬 在线 PPT: {gamma_url}" if gamma_url else "🎬 在线 PPT: (本周生成失败, 请查看 Markdown)"
+    gamma_line_html = (
+        f'🎬 在线 PPT: <a href="{gamma_url}">{gamma_url}</a>'
+        if gamma_url
+        else "🎬 在线 PPT: (本周生成失败, 请查看 Markdown)"
+    )
+
     message = f"""
 📊 MIH 工时周报 - 第 {week_num} 周
 
@@ -382,21 +421,40 @@ def main():
 ⏱️ 总工时: {summary['total_hours']:.1f} 小时
 📁 项目数: {summary['project_count']} 个
 
+{gamma_line}
+
 报告已保存至: {result['report_path']}
 """
-    
+
+    html_message = f"""<html><body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; color: #1f2937;">
+<h2 style="margin-bottom: 12px;">📊 MIH 工时周报 - 第 {week_num} 周</h2>
+<p style="margin: 0 0 16px;">
+📅 周期: {start_date} 至 {end_date}<br>
+👥 成员数: {summary['member_count']} 人<br>
+📋 记录数: {summary['record_count']} 条<br>
+⏱️ 总工时: {summary['total_hours']:.1f} 小时<br>
+📁 项目数: {summary['project_count']} 个
+</p>
+<p style="margin: 0 0 16px;">{gamma_line_html}</p>
+<p style="margin: 0; color: #6b7280; font-size: 13px;">报告已保存至: {result['report_path']}</p>
+</body></html>"""
+
     print(message)
-    
+
     # 邮件
     if args.email:
         CONFIG["email"]["enabled"] = True
         CONFIG["email"]["recipient_emails"] = args.email
-    
+
     if CONFIG["email"]["enabled"]:
+        attachments = [result["report_path"], result["chart_path"]]
+        if result.get("pdf_path"):
+            attachments.append(result["pdf_path"])
         send_email(
             subject=f"MIH 工时周报 - 第 {week_num} 周",
             body=message,
-            attachments=[result["report_path"], result["chart_path"]]
+            html_body=html_message,
+            attachments=attachments,
         )
     
     # Webhook

@@ -95,3 +95,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 - [ ] Webhook notifications are coded but disabled (planned activation in Phase 3). Email is active via 126 SMTP (smtp.126.com:465 SSL) using `MAIL_SENDER` env var
 - [ ] `run_analysis()` in `auto_weekly_report.py` duplicates the pipeline used by `app.py`'s AI 分析 tab — candidate for extraction to `src/report_pipeline.py`
+
+## Gamma Integration
+
+`auto_weekly_report.py` calls Gamma Generate API (via `src/gamma_client.py`) to turn the Markdown report into an online presentation. Sidecar `reports/report_YYYYMMDD.json` stores `gammaUrl` / `exportUrl` so `app.py` Tab 6 can embed the deck via iframe. Requires `GAMMA_API_KEY` env var (Gamma Pro+); falls back to skip with a warning if missing.

@@ -814,6 +814,7 @@ if st.session_state.loaded_data is None:
 
         st.session_state.loaded_data = df
         st.session_state.loaded_meta = meta
+        st.session_state['data_fetched_at'] = datetime.now().isoformat(timespec="seconds")
 
     except Exception as e:
         st.error(f"❌ 数据加载失败: {e}")
@@ -838,6 +839,7 @@ if ai_enabled and api_key and 'ai_insights' not in st.session_state:
             _ai_result = analyzer.generate_ai_insights("本周", api_key)
             if _ai_result:
                 st.session_state['ai_insights'] = _ai_result
+                st.session_state['ai_insights_ts'] = datetime.now().isoformat(timespec="seconds")
         except Exception as _e:
             st.warning(f"AI 深度分析失败 (不影响其他功能): {_e}")
 
@@ -1480,6 +1482,7 @@ with tab5:
                         _result = analyzer.generate_ai_insights("本周", api_key)
                         if _result:
                             st.session_state['ai_insights'] = _result
+                            st.session_state['ai_insights_ts'] = datetime.now().isoformat(timespec="seconds")
                             st.rerun()
                         else:
                             st.error("AI 分析返回空结果，请检查 API Key。")
@@ -1521,39 +1524,142 @@ with tab6:
     with st.expander("📖 报告预览", expanded=False):
         st.markdown(report_content)
 
-    # Gamma 在线 PPT (按 ISO 周匹配 sidecar, 与 reference_date 落在同一周即可)
+    # Gamma 在线 PPT
+    # 优先级: session_state override (本次会话刚重生过) > sidecar (CI 或上次落盘)
+    # session_state 兜住 Streamlit Cloud 文件系统易失的问题
     _ref_monday = reference_date - timedelta(days=reference_date.weekday())
     _gamma_url = None
     _matched_date = None
-    for _json_path in Path("reports").glob("report_*.json"):
-        try:
-            _file_date = datetime.strptime(_json_path.stem.replace("report_", ""), "%Y%m%d").date()
-        except ValueError:
-            continue
-        if _file_date - timedelta(days=_file_date.weekday()) == _ref_monday:
-            _matched_date = _file_date
+    _sidecar_data = None
+    _sidecar_path = None
+
+    _override_url = st.session_state.get('gamma_url_override')
+    _override_date = st.session_state.get('gamma_override_date')
+    if _override_url and _override_date == reference_date.isoformat():
+        _gamma_url = _override_url
+        _matched_date = reference_date
+        _sidecar_data = {
+            "gammaUrl": _override_url,
+            "generatedAt": st.session_state.get('gamma_override_generated_at'),
+            "source": "streamlit_manual",
+        }
+    else:
+        for _json_path in Path("reports").glob("report_*.json"):
             try:
-                _gamma_url = json.loads(_json_path.read_text(encoding="utf-8")).get("gammaUrl")
-            except (json.JSONDecodeError, OSError):
-                _gamma_url = None
-            break
-    if _gamma_url:
-        with st.expander("🎬 Gamma 在线 PPT", expanded=True):
+                _file_date = datetime.strptime(_json_path.stem.replace("report_", ""), "%Y%m%d").date()
+            except ValueError:
+                continue
+            if _file_date - timedelta(days=_file_date.weekday()) == _ref_monday:
+                _matched_date = _file_date
+                _sidecar_path = _json_path
+                try:
+                    _sidecar_data = json.loads(_json_path.read_text(encoding="utf-8"))
+                    _gamma_url = _sidecar_data.get("gammaUrl")
+                except (json.JSONDecodeError, OSError):
+                    _sidecar_data = None
+                    _gamma_url = None
+                break
+
+    # 新鲜度判断: 数据/AI 时间戳晚于 PPT 生成时间 → 提示重生
+    _data_ts = st.session_state.get('data_fetched_at')
+    _ai_ts = st.session_state.get('ai_insights_ts')
+    _generated_at = _sidecar_data.get("generatedAt") if _sidecar_data else None
+    _is_stale = False
+    if _generated_at:
+        if (_data_ts and _data_ts > _generated_at) or (_ai_ts and _ai_ts > _generated_at):
+            _is_stale = True
+
+    with st.expander("🎬 Gamma 在线 PPT", expanded=True):
+        if _gamma_url:
+            if _is_stale:
+                st.warning(
+                    f"⚠️ 当前已加载的数据/分析比这份 PPT 更新 "
+                    f"(PPT 基于 {_generated_at} 生成)，建议重新生成。"
+                )
+            elif _generated_at:
+                _src_label = "本次会话手动重生" if _sidecar_data.get("source") == "streamlit_manual" else "定时任务"
+                st.caption(f"📅 此 PPT 基于 {_generated_at} 的数据生成 · {_src_label}")
+
             _embed_url = _gamma_url.replace("/docs/", "/embed/")
             components.iframe(_embed_url, height=540, scrolling=False)
-            _col_a, _col_b = st.columns([1, 1])
-            with _col_a:
+        else:
+            st.info(f"本周 ({_ref_monday.strftime('%Y-%m-%d')} 起) 暂无 Gamma PPT，点下面按钮立即生成。")
+
+        # 操作按钮区
+        _col_a, _col_b, _col_c = st.columns([1, 1, 1])
+        with _col_a:
+            _regen_clicked = st.button(
+                "🔄 重新生成 PPT",
+                use_container_width=True,
+                type="primary" if _is_stale or not _gamma_url else "secondary",
+                help="基于当前已加载的数据 + 重跑 AI 深度分析,调用 Gamma 重新生成 PPT (~3–5 分钟)",
+            )
+        with _col_b:
+            if _gamma_url:
                 st.link_button("✏️ 在 Gamma 中编辑", _gamma_url, use_container_width=True)
-            with _col_b:
+        with _col_c:
+            if _matched_date:
                 _pdf_path = Path("reports") / f"report_{_matched_date.strftime('%Y%m%d')}.pdf"
                 if _pdf_path.exists():
                     st.download_button(
-                        "📥 下载 PPT (PDF)",
+                        "📥 下载 PDF",
                         data=_pdf_path.read_bytes(),
                         file_name=_pdf_path.name,
                         mime="application/pdf",
                         use_container_width=True,
                     )
+
+        if _regen_clicked:
+            from src.report_pipeline import render_report_artifacts
+            _gamma_key = (
+                st.secrets.get("GAMMA_API_KEY", "") if hasattr(st, 'secrets') else ""
+            ) or os.getenv("GAMMA_API_KEY", "")
+            if not _gamma_key:
+                st.error("未检测到 GAMMA_API_KEY，无法调用 Gamma。请配置 Streamlit Secrets 或环境变量。")
+            else:
+                _regen_ai = ai_insights
+                # 用户选择「一并自动重跑 AI」,api_key 可用时先重跑
+                if api_key and ai_enabled:
+                    with st.spinner("🤖 重跑 AI 深度分析 (~30–60 秒)..."):
+                        try:
+                            _regen_ai = analyzer.generate_ai_insights("本周", api_key)
+                            if _regen_ai:
+                                st.session_state['ai_insights'] = _regen_ai
+                                st.session_state['ai_insights_ts'] = datetime.now().isoformat(timespec="seconds")
+                        except Exception as _e:
+                            st.warning(f"AI 重跑失败,将使用现有 AI 结果继续: {_e}")
+                            _regen_ai = ai_insights
+                else:
+                    st.info("未配置 ANTHROPIC_API_KEY,跳过 AI 重跑,直接用现有分析重生 PPT。")
+
+                with st.spinner("🎬 调用 Gamma 生成 PPT (~3–5 分钟,请勿关闭页面)..."):
+                    try:
+                        _artifacts = render_report_artifacts(
+                            df=df,
+                            summary=current_summary,
+                            member_results=current_members,
+                            project_results=current_projects,
+                            insights=insights,
+                            next_week_summary=next_summary,
+                            next_week_members=next_members,
+                            next_week_projects=next_projects,
+                            ai_insights=_regen_ai,
+                            reference_date=reference_date,
+                            output_dir="reports",
+                            source="streamlit_manual",
+                        )
+                    except Exception as _e:
+                        st.error(f"流水线异常: {_e}")
+                        _artifacts = None
+
+                if _artifacts and _artifacts.get("gamma_url"):
+                    st.session_state['gamma_url_override'] = _artifacts["gamma_url"]
+                    st.session_state['gamma_override_date'] = reference_date.isoformat()
+                    st.session_state['gamma_override_generated_at'] = _artifacts["generated_at"]
+                    st.success(f"✅ PPT 已重新生成: {_artifacts['gamma_url']}")
+                    st.rerun()
+                else:
+                    st.error("Gamma 生成失败或超时,请稍后重试或检查 GAMMA_API_KEY 配额。")
 
     st.divider()
 

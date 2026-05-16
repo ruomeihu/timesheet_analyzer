@@ -23,7 +23,6 @@ try:
     load_dotenv()
 except ImportError:
     pass
-import json
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -128,24 +127,21 @@ def export_from_notion(start_date: str, end_date: str, output_path: str) -> bool
 
 
 def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
-    """运行分析
+    """运行分析。
 
-    TODO (已知技术债):
-    本函数与 app.py 中 "AI 分析" tab 的核心逻辑重复 (加载/预处理/分析/生成报告)。
-    未来值得抽取一个共用模块 (例如 src/report_pipeline.py), 让两边都调用,
-    避免逻辑漂移。
+    流水线 (Markdown/图表/Gamma/sidecar/PDF) 委托给 src.report_pipeline,
+    与 app.py 的「重新生成 PPT」按钮共用同一段逻辑。
     """
     print(f"📊 运行分析...")
-    
+
     try:
         script_dir = Path(__file__).parent
         sys.path.insert(0, str(script_dir))
-        
+
         from src.data_loader import load_timesheet
-        from src.preprocessor import preprocess_data, filter_by_period
+        from src.preprocessor import preprocess_data
         from src.analyzer import TimesheetAnalyzer
-        from src.report_generator import generate_markdown_report, save_report
-        from src.visualizer import create_visualizations
+        from src.report_pipeline import render_report_artifacts
 
         ref_date = datetime.strptime(reference_date, "%Y-%m-%d").date()
 
@@ -190,12 +186,8 @@ def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
         next_members = analyzer.analyze_members("下周")
         next_projects = analyzer.analyze_projects("下周")
 
-        # 生成报告（函数式，返回字符串）
-        date_str = reference_date.replace("-", "")
-        report_path = os.path.join(output_dir, f"report_{date_str}.md")
-        chart_path = os.path.join(output_dir, f"chart_{date_str}.png")
-
-        report_content = generate_markdown_report(
+        artifacts = render_report_artifacts(
+            df=df,
             summary=summary,
             member_results=member_results,
             project_results=project_results,
@@ -204,51 +196,21 @@ def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
             next_week_members=next_members,
             next_week_projects=next_projects,
             ai_insights=ai_insights,
-            df=df
+            reference_date=ref_date,
+            output_dir=output_dir,
+            source="ci",
         )
-        save_report(report_content, Path(report_path))
 
-        # 生成图表（函数式）
-        df_current = filter_by_period(df, "本周")
-        if len(df_current) > 0:
-            create_visualizations(
-                df=df_current,
-                member_results=member_results,
-                project_results=project_results,
-                output_path=Path(chart_path)
-            )
-
-        print(f"✅ 报告已保存: {report_path}")
-        print(f"✅ 图表已保存: {chart_path}")
-
-        # Gamma 在线 PPT (失败不影响主流程)
-        from src.gamma_client import generate_presentation, download_export
-
-        gamma_result = generate_presentation(report_content)
-        gamma_url = gamma_result["gammaUrl"] if gamma_result else None
-        pdf_path = None
-        if gamma_result and gamma_result.get("exportUrl"):
-            pdf_candidate = os.path.join(output_dir, f"report_{date_str}.pdf")
-            if download_export(gamma_result["exportUrl"], pdf_candidate):
-                pdf_path = pdf_candidate
-
-        # 写 JSON sidecar (供 Streamlit 前端读取)
-        sidecar_path = os.path.join(output_dir, f"report_{date_str}.json")
-        with open(sidecar_path, "w", encoding="utf-8") as f:
-            json.dump({
-                "gammaUrl": gamma_url,
-                "exportUrl": gamma_result.get("exportUrl") if gamma_result else None,
-                "generationId": gamma_result.get("generationId") if gamma_result else None,
-                "generatedAt": datetime.now().isoformat(timespec="seconds"),
-            }, f, ensure_ascii=False, indent=2)
-        print(f"✅ Gamma 元数据已保存: {sidecar_path}")
+        print(f"✅ 报告已保存: {artifacts['report_path']}")
+        print(f"✅ 图表已保存: {artifacts['chart_path']}")
+        print(f"✅ Gamma 元数据已保存: {artifacts['sidecar_path']}")
 
         return {
             "success": True,
-            "report_path": report_path,
-            "chart_path": chart_path,
-            "gamma_url": gamma_url,
-            "pdf_path": pdf_path,
+            "report_path": artifacts["report_path"],
+            "chart_path": artifacts["chart_path"],
+            "gamma_url": artifacts["gamma_url"],
+            "pdf_path": artifacts["pdf_path"],
             "summary": {
                 "total_hours": summary['total_hours'],
                 "member_count": summary['member_count'],
@@ -256,7 +218,7 @@ def run_analysis(input_path: str, reference_date: str, output_dir: str) -> dict:
                 "record_count": meta['total_records']
             }
         }
-        
+
     except Exception as e:
         print(f"❌ 分析失败: {e}")
         import traceback

@@ -26,29 +26,53 @@ from src.report_generator import generate_markdown_report
 from config import get_employees_config, add_employee_leave
 
 # ============================================
-# Altair 主题
+# Altair 主题（MIH 品牌规范 · 数据可视化色板）
+# 单色主导原则：B 端图表默认以蓝系为主，粉色仅做单点强调
 # ============================================
-CHART_COLORS = ['#4F46E5', '#7C3AED', '#06B6D4', '#059669', '#D97706',
-                '#EC4899', '#F43F5E', '#8B5CF6', '#14B8A6', '#F59E0B']
+MIH_CHART_PALETTE = [
+    '#2F68B2',  # 品牌蓝（主系列）
+    '#1A3A6E',  # 墨蓝
+    '#5F8BC4',  # 中蓝
+    '#62B4DD',  # 亮蓝
+    '#B92957',  # 品牌粉（限做强调，谨慎使用）
+    '#D97706',  # 橙
+    '#1B7F4D',  # 绿
+    '#7B5EA7',  # 紫
+    '#C0392B',  # 红
+    '#8C8C8C',  # 灰
+]
+# 兼容旧引用
+CHART_COLORS = MIH_CHART_PALETTE
 
-def _indigo_theme():
+def _mih_theme():
     return {
         'config': {
             'background': 'transparent',
-            'title': {'color': '#1E293B', 'fontSize': 15, 'fontWeight': 600},
+            'font': 'Inter, "Microsoft YaHei", -apple-system, sans-serif',
+            'title': {'color': '#1F2933', 'fontSize': 14, 'fontWeight': 600, 'anchor': 'start'},
             'axis': {
-                'labelColor': '#64748B', 'titleColor': '#1E293B',
-                'gridColor': '#E2E8F0', 'domainColor': '#CBD5E1',
-                'labelFontSize': 12, 'titleFontSize': 13,
+                'labelColor': '#5C5C5C', 'titleColor': '#404040',
+                'gridColor': '#F0F0F0', 'domainColor': '#D9D9D9',
+                'tickColor': '#D9D9D9',
+                'labelFontSize': 11, 'titleFontSize': 12,
+                'labelFont': 'Inter, "Microsoft YaHei", sans-serif',
+                'titleFont': 'Inter, "Microsoft YaHei", sans-serif',
             },
-            'legend': {'labelColor': '#64748B', 'titleColor': '#1E293B'},
-            'range': {'category': CHART_COLORS},
+            'legend': {
+                'labelColor': '#5C5C5C', 'titleColor': '#404040',
+                'labelFontSize': 11, 'titleFontSize': 12,
+            },
+            'range': {
+                'category': MIH_CHART_PALETTE,
+                'ramp': ['#E9F1FA', '#CBE6F4', '#9DC8E8', '#6FA9D8', '#5F8BC4', '#2F68B2', '#0F348D'],
+                'heatmap': ['#E9F1FA', '#CBE6F4', '#9DC8E8', '#6FA9D8', '#5F8BC4', '#2F68B2', '#0F348D'],
+            },
             'view': {'stroke': 'transparent'},
         }
     }
 
-alt.themes.register('indigo', _indigo_theme)
-alt.themes.enable('indigo')
+alt.themes.register('mih', _mih_theme)
+alt.themes.enable('mih')
 
 # 尝试导入 AI 分析模块
 try:
@@ -75,415 +99,417 @@ st.set_page_config(
 )
 
 # ============================================
-# 自定义样式
+# 自定义样式（MIH 品牌规范 · 美年健康研究院）
+# Token 来源: ~/.claude/skills/mih_brand_guidelines/assets/design_tokens.css
+# 设计哲学: 数据为主角 · 单色主导（蓝+白+灰 ≥70%）· 节制即权威
 # ============================================
 st.markdown("""
 <style>
-    /* ── Google Fonts ── */
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+    /* ── Web fonts: Inter (英文/数字) + IBM Plex Mono (等宽数字) ── */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-    /* ── CSS Variables (Light) ── */
+    /* ── MIH design tokens · Light ── */
     :root {
-        --card-bg: #FFFFFF;
-        --card-border: #E2E8F0;
-        --text-primary: #1E293B;
-        --text-secondary: #64748B;
-        --bg-subtle: #F8FAFC;
-        --bg-sidebar: #F8FAFC;
-        --shadow-light: rgba(0,0,0,0.04);
-        --indigo: #4F46E5;
-        --violet: #7C3AED;
-        --cyan: #06B6D4;
-        --emerald: #059669;
-        --hero-bg: linear-gradient(135deg, #EEF2FF 0%, #F5F3FF 50%, #FDF2F8 100%);
-        --hero-border: #E0E7FF;
-        --tab-list-bg: #F1F5F9;
-        --tab-active-bg: #FFFFFF;
-        --chart-header-border: #F1F5F9;
-        --chart-header-color: #334155;
-        --step-bg-gradient: linear-gradient(90deg, #EEF2FF, transparent);
-        --sidebar-text: #1E293B;
+        /* Brand */
+        --mih-primary: #2F68B2;
+        --mih-primary-hover: #1F4F8F;
+        --mih-primary-active: #0F348D;
+        --mih-primary-light: #CBE6F4;
+        --mih-ink: #1A3A6E;
+        /* Surface / text / border */
+        --mih-bg: #FFFFFF;
+        --mih-bg-subtle: #FAFAFA;
+        --mih-surface: #FFFFFF;
+        --mih-surface-hover: #F2F2F2;
+        --mih-text-primary: #1F2933;
+        --mih-text-secondary: #404040;
+        --mih-text-tertiary: #5C5C5C;
+        --mih-text-muted: #8C8C8C;
+        --mih-border: #D9D9D9;
+        --mih-border-soft: #F0F0F0;
+        --mih-divider: #F2F2F2;
+        /* Semantic（仅用于状态指示，不当装饰） */
+        --mih-success: #1B7F4D;
+        --mih-warning: #D97706;
+        --mih-danger: #C0392B;
+        /* Shadows（深蓝调，不用纯黑） */
+        --mih-shadow-1: 0 1px 2px rgba(15, 52, 141, 0.06);
+        --mih-shadow-2: 0 2px 8px rgba(15, 52, 141, 0.08);
+        --mih-shadow-focus: 0 0 0 3px rgba(47, 104, 178, 0.2);
+        /* Aliases used by existing markup */
+        --card-bg: var(--mih-surface);
+        --card-border: var(--mih-border-soft);
+        --text-primary: var(--mih-text-primary);
+        --text-secondary: var(--mih-text-tertiary);
+        --bg-subtle: var(--mih-bg-subtle);
+        --bg-sidebar: var(--mih-bg-subtle);
+        --tab-list-bg: var(--mih-bg-subtle);
+        --tab-active-bg: var(--mih-surface);
+        --chart-header-border: var(--mih-divider);
+        --chart-header-color: var(--mih-text-secondary);
+        --sidebar-text: var(--mih-text-primary);
     }
 
-    /* ── Dark mode variables ── */
-    /* Browser-level dark mode */
+    /* ── MIH design tokens · Dark ── */
     @media (prefers-color-scheme: dark) {
         :root {
-            --card-bg: #1E293B;
-            --card-border: #334155;
-            --text-primary: #F1F5F9;
-            --text-secondary: #94A3B8;
-            --bg-subtle: #0F172A;
-            --bg-sidebar: #0F172A;
-            --shadow-light: rgba(0,0,0,0.3);
-            --hero-bg: linear-gradient(135deg, #1a1744 0%, #1e1b3a 50%, #231a2e 100%);
-            --hero-border: #312e81;
-            --tab-list-bg: #1E293B;
-            --tab-active-bg: #334155;
-            --chart-header-border: #334155;
-            --chart-header-color: #E2E8F0;
-            --step-bg-gradient: linear-gradient(90deg, rgba(79,70,229,0.15), transparent);
-            --sidebar-text: #E2E8F0;
+            --mih-primary: #62B4DD;
+            --mih-primary-hover: #7AC4E8;
+            --mih-primary-active: #2F68B2;
+            --mih-primary-light: rgba(98, 180, 221, 0.15);
+            --mih-bg: #0F1419;
+            --mih-bg-subtle: #1F2933;
+            --mih-surface: #1F2933;
+            --mih-surface-hover: #2D3748;
+            --mih-text-primary: #F5F5F5;
+            --mih-text-secondary: #D1D5DB;
+            --mih-text-tertiary: #9CA3AF;
+            --mih-text-muted: #6B7280;
+            --mih-border: #374151;
+            --mih-border-soft: #2D3748;
+            --mih-divider: #2D3748;
+            --mih-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+            --mih-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
     }
-    /* Streamlit built-in dark theme */
     [data-theme="dark"] {
-        --card-bg: #1E293B;
-        --card-border: #334155;
-        --text-primary: #F1F5F9;
-        --text-secondary: #94A3B8;
-        --bg-subtle: #0F172A;
-        --bg-sidebar: #0F172A;
-        --shadow-light: rgba(0,0,0,0.3);
-        --hero-bg: linear-gradient(135deg, #1a1744 0%, #1e1b3a 50%, #231a2e 100%);
-        --hero-border: #312e81;
-        --tab-list-bg: #1E293B;
-        --tab-active-bg: #334155;
-        --chart-header-border: #334155;
-        --chart-header-color: #E2E8F0;
-        --step-bg-gradient: linear-gradient(90deg, rgba(79,70,229,0.15), transparent);
-        --sidebar-text: #E2E8F0;
+        --mih-primary: #62B4DD;
+        --mih-primary-hover: #7AC4E8;
+        --mih-primary-active: #2F68B2;
+        --mih-primary-light: rgba(98, 180, 221, 0.15);
+        --mih-bg: #0F1419;
+        --mih-bg-subtle: #1F2933;
+        --mih-surface: #1F2933;
+        --mih-surface-hover: #2D3748;
+        --mih-text-primary: #F5F5F5;
+        --mih-text-secondary: #D1D5DB;
+        --mih-text-tertiary: #9CA3AF;
+        --mih-text-muted: #6B7280;
+        --mih-border: #374151;
+        --mih-border-soft: #2D3748;
+        --mih-divider: #2D3748;
+        --mih-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+        --mih-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.5);
     }
 
-    /* Dark mode: force main area & sidebar backgrounds */
+    /* Dark mode: app/sidebar surfaces */
     @media (prefers-color-scheme: dark) {
         [data-testid="stAppViewContainer"],
         .main .block-container,
-        [data-testid="stMainBlockContainer"] {
-            background-color: #0F172A !important;
-            color: #F1F5F9 !important;
-        }
-        [data-testid="stHeader"] {
-            background-color: #0F172A !important;
-        }
-        [data-testid="stSidebar"] > div:first-child {
-            background-color: #0F172A !important;
-        }
-        /* Fix inputs in dark mode */
-        [data-testid="stSidebar"] input,
-        [data-testid="stSidebar"] [data-baseweb="select"],
-        [data-testid="stSidebar"] [data-baseweb="input"] {
-            background-color: #1E293B !important;
-            color: #F1F5F9 !important;
-            border-color: #334155 !important;
-        }
-        /* Select box — container, value text, dropdown */
+        [data-testid="stMainBlockContainer"] { background-color: var(--mih-bg) !important; color: var(--mih-text-primary) !important; }
+        [data-testid="stHeader"] { background-color: var(--mih-bg) !important; }
+        [data-testid="stSidebar"] > div:first-child { background-color: var(--mih-bg-subtle) !important; }
         [data-baseweb="select"] > div,
-        [data-baseweb="select"] [data-baseweb="tag"],
         [data-baseweb="select"] span,
-        [data-baseweb="select"] input {
-            background-color: #1E293B !important;
-            color: #F1F5F9 !important;
-        }
-        [data-baseweb="select"] svg {
-            fill: #94A3B8 !important;
-        }
-        /* Select dropdown menu */
-        [data-baseweb="popover"],
-        [data-baseweb="menu"],
-        [role="listbox"],
-        [role="option"] {
-            background-color: #1E293B !important;
-            color: #F1F5F9 !important;
-        }
-        [role="option"]:hover {
-            background-color: #334155 !important;
-        }
-        /* Streamlit subheader text */
-        h1, h2, h3, h4, h5, h6,
-        .stMarkdown, .stCaption, p, span, label {
-            color: #F1F5F9 !important;
-        }
-        /* Fix alerts */
-        [data-testid="stAlert"] {
-            background-color: #1E293B !important;
-            color: #F1F5F9 !important;
-        }
-        /* Fix date input */
-        [data-testid="stDateInput"] input {
-            background-color: #1E293B !important;
-            color: #F1F5F9 !important;
-        }
-        /* DataFrames — dark wrapper */
-        [data-testid="stDataFrame"] {
-            background-color: #1E293B !important;
-            border-radius: 10px;
-        }
+        [data-baseweb="select"] input,
+        [data-testid="stDateInput"] input { background-color: var(--mih-surface) !important; color: var(--mih-text-primary) !important; }
+        [data-baseweb="select"] svg { fill: var(--mih-text-tertiary) !important; }
+        [data-baseweb="popover"], [data-baseweb="menu"], [role="listbox"], [role="option"] { background-color: var(--mih-surface) !important; color: var(--mih-text-primary) !important; }
+        [role="option"]:hover { background-color: var(--mih-surface-hover) !important; }
+        [data-testid="stAlert"] { background-color: var(--mih-surface) !important; color: var(--mih-text-primary) !important; }
+        [data-testid="stDataFrame"] { background-color: var(--mih-surface) !important; }
     }
-
-    /* Streamlit theme dark: same overrides */
     [data-theme="dark"] [data-testid="stAppViewContainer"],
     [data-theme="dark"] .main .block-container,
-    [data-theme="dark"] [data-testid="stMainBlockContainer"] {
-        background-color: #0F172A !important;
-        color: #F1F5F9 !important;
-    }
-    [data-theme="dark"] [data-testid="stHeader"] {
-        background-color: #0F172A !important;
-    }
-    [data-theme="dark"] [data-testid="stSidebar"] > div:first-child {
-        background-color: #0F172A !important;
-    }
+    [data-theme="dark"] [data-testid="stMainBlockContainer"] { background-color: var(--mih-bg) !important; color: var(--mih-text-primary) !important; }
+    [data-theme="dark"] [data-testid="stHeader"] { background-color: var(--mih-bg) !important; }
+    [data-theme="dark"] [data-testid="stSidebar"] > div:first-child { background-color: var(--mih-bg-subtle) !important; }
 
-    /* ── Global Font ── */
+    /* ── Global typography ── */
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: "Inter", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", -apple-system, BlinkMacSystemFont, sans-serif;
+        font-feature-settings: "cv11", "ss01";
     }
 
-    /* ── Hero Section ── */
+    /* ── Hero section（极简版：去掉所有 gradient，仅留细底边作为品牌横线） ── */
     .hero-section {
-        background: var(--hero-bg);
-        border: 1px solid var(--hero-border);
-        border-radius: 16px;
-        padding: 2rem 2.5rem;
-        margin-bottom: 1.5rem;
+        background: var(--mih-surface);
+        border: 1px solid var(--mih-border-soft);
+        border-radius: 8px;
+        padding: 1.75rem 2rem 1.5rem;
+        margin-bottom: 1.75rem;
         position: relative;
         overflow: hidden;
     }
-    .hero-section::before {
+    .hero-section::after {
         content: '';
         position: absolute;
-        inset: 0;
-        background-image: radial-gradient(#4F46E5 0.5px, transparent 0.5px);
-        background-size: 24px 24px;
-        opacity: 0.04;
+        left: 0; right: 0; bottom: 0;
+        height: 3px;
+        background: var(--mih-primary);
     }
-
-    /* Header */
-    .main-header {
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 2.4rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #4F46E5, #7C3AED);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+    .main-eyebrow {
+        font-size: 0.7rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--mih-primary);
+        font-weight: 600;
         margin-bottom: 0.5rem;
-        letter-spacing: -0.03em;
-        position: relative;
+    }
+    .main-header {
+        font-family: "Inter", "Microsoft YaHei", sans-serif;
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: var(--mih-text-primary);
+        margin-bottom: 0.4rem;
+        letter-spacing: -0.01em;
+        line-height: 1.25;
     }
     .main-subtitle {
-        color: var(--text-secondary);
-        font-size: 0.95rem;
+        color: var(--mih-text-tertiary);
+        font-size: 0.875rem;
         margin-bottom: 0;
-        position: relative;
+        line-height: 1.5;
     }
 
-    /* ── Metric cards ── */
+    /* ── Metric cards（统一蓝色顶条，不靠颜色区分 KPI） ── */
     [data-testid="stMetric"] {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 12px;
+        background: var(--mih-surface);
+        border: 1px solid var(--mih-border-soft);
+        border-top: 2px solid var(--mih-primary);
+        border-radius: 4px;
         padding: 1rem 1.25rem;
-        box-shadow: 0 1px 3px var(--shadow-light);
-        transition: box-shadow 0.2s ease, transform 0.2s ease;
+        box-shadow: var(--mih-shadow-1);
+        transition: box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     [data-testid="stMetric"]:hover {
-        box-shadow: 0 4px 12px rgba(79,70,229,0.1);
-        transform: translateY(-1px);
+        box-shadow: var(--mih-shadow-2);
     }
     [data-testid="stMetricLabel"] {
-        color: var(--text-secondary);
-        font-size: 0.85rem;
+        color: var(--mih-text-tertiary);
+        font-size: 0.8125rem;
         font-weight: 500;
+        letter-spacing: 0.01em;
     }
     [data-testid="stMetricValue"] {
-        font-family: 'DM Mono', 'SF Mono', monospace;
-        color: var(--text-primary);
-        font-weight: 700;
-        letter-spacing: -0.02em;
+        font-family: "IBM Plex Mono", "SF Mono", "Roboto Mono", Consolas, monospace;
+        color: var(--mih-text-primary);
+        font-weight: 600;
+        letter-spacing: -0.01em;
     }
 
-    /* Metric color bars */
-    [data-testid="stHorizontalBlock"] > div:nth-child(1) [data-testid="stMetric"] {
-        border-top: 3px solid var(--indigo);
-    }
-    [data-testid="stHorizontalBlock"] > div:nth-child(2) [data-testid="stMetric"] {
-        border-top: 3px solid var(--cyan);
-    }
-    [data-testid="stHorizontalBlock"] > div:nth-child(3) [data-testid="stMetric"] {
-        border-top: 3px solid var(--violet);
-    }
-    [data-testid="stHorizontalBlock"] > div:nth-child(4) [data-testid="stMetric"] {
-        border-top: 3px solid var(--emerald);
-    }
-
-    /* ── Tabs ── */
+    /* ── Tabs（克制：active 用细底边而非整块背景色） ── */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 4px;
-        background: var(--tab-list-bg);
-        border-radius: 10px;
-        padding: 4px;
+        gap: 0;
+        background: transparent;
+        border-bottom: 1px solid var(--mih-border-soft);
+        border-radius: 0;
+        padding: 0;
     }
     .stTabs [data-baseweb="tab"] {
-        border-radius: 8px;
-        padding: 8px 16px;
+        border-radius: 0;
+        padding: 10px 18px;
         font-weight: 500;
-        font-size: 0.9rem;
-        transition: all 0.2s ease;
+        font-size: 0.875rem;
+        color: var(--mih-text-tertiary);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     .stTabs [aria-selected="true"] {
-        background: var(--tab-active-bg);
-        box-shadow: 0 1px 3px var(--shadow-light);
-        border-bottom: 2px solid var(--indigo);
+        color: var(--mih-primary);
+        background: transparent;
+        box-shadow: none;
+        border-bottom: 2px solid var(--mih-primary);
     }
     .stTabs [aria-selected="false"]:hover {
-        background: rgba(79, 70, 229, 0.1);
+        color: var(--mih-text-secondary);
+        background: transparent;
     }
 
     /* ── Sidebar ── */
     [data-testid="stSidebar"] {
-        background: var(--bg-sidebar);
-        border-right: 1px solid var(--card-border);
+        background: var(--mih-bg-subtle);
+        border-right: 1px solid var(--mih-border-soft);
     }
     [data-testid="stSidebar"] * {
-        color: var(--sidebar-text) !important;
+        color: var(--mih-text-primary) !important;
     }
     [data-testid="stSidebar"] .stRadio > label {
         font-weight: 500;
     }
-    /* Sidebar step headers */
+    /* Sidebar step headers — 细蓝竖条，无渐变 */
     [data-testid="stSidebar"] .stSubheader {
-        background: var(--step-bg-gradient);
-        padding: 0.5rem 0.75rem;
-        border-left: 3px solid var(--indigo);
-        border-radius: 0 8px 8px 0;
-        margin: 1rem 0 0.5rem 0;
-        font-size: 0.85rem;
+        padding: 0.5rem 0 0.5rem 0.75rem;
+        border-left: 2px solid var(--mih-primary);
+        margin: 1.25rem 0 0.5rem 0;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--mih-text-primary) !important;
     }
 
     /* ── DataFrames ── */
     [data-testid="stDataFrame"] {
-        border-radius: 10px;
+        border-radius: 4px;
         overflow: hidden;
+        border: 1px solid var(--mih-border-soft);
     }
 
-    /* ── Buttons ── */
+    /* ── Buttons（实心蓝，无 gradient） ── */
     .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #4F46E5, #7C3AED);
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        padding: 0.5rem 1.5rem;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        background: var(--mih-primary);
+        border: 1px solid var(--mih-primary);
+        border-radius: 4px;
+        color: #FFFFFF;
+        font-weight: 500;
+        font-size: 0.875rem;
+        padding: 0.5rem 1.25rem;
+        transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     .stButton > button[kind="primary"]:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(79,70,229,0.3);
+        background: var(--mih-primary-hover);
+        border-color: var(--mih-primary-hover);
+        box-shadow: none;
+        transform: none;
+    }
+    .stButton > button[kind="primary"]:active {
+        background: var(--mih-primary-active);
+    }
+    .stButton > button[kind="secondary"] {
+        background: var(--mih-surface);
+        border: 1px solid var(--mih-border);
+        border-radius: 4px;
+        color: var(--mih-text-secondary);
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+    .stButton > button[kind="secondary"]:hover {
+        border-color: var(--mih-primary);
+        color: var(--mih-primary);
+    }
+    .stButton > button:focus-visible,
+    .stDownloadButton > button:focus-visible {
+        box-shadow: var(--mih-shadow-focus);
+        outline: none;
     }
 
     /* ── Expander ── */
     .streamlit-expanderHeader {
-        font-weight: 600;
-        color: var(--text-primary);
+        font-weight: 500;
+        color: var(--mih-text-primary);
     }
 
-    /* ── Divider ── */
+    /* ── Horizontal block spacing ── */
     [data-testid="stHorizontalBlock"] {
         gap: 1rem;
     }
 
-    /* ── Status colors ── */
-    .status-normal { color: #059669; }
-    .status-warning { color: #DC2626; }
-    .status-low { color: #D97706; }
+    /* ── Status colors（与品牌 semantic token 一致） ── */
+    .status-normal  { color: var(--mih-success); }
+    .status-warning { color: var(--mih-danger);  }
+    .status-low     { color: var(--mih-warning); }
 
     /* ── Alert styling ── */
     [data-testid="stAlert"] {
-        border-radius: 10px;
+        border-radius: 4px;
+        border: 1px solid var(--mih-border-soft);
     }
 
     /* ── Chart card ── */
     .chart-card {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 14px;
+        background: var(--mih-surface);
+        border: 1px solid var(--mih-border-soft);
+        border-radius: 4px;
         overflow: hidden;
-        box-shadow: 0 1px 3px var(--shadow-light);
+        box-shadow: none;
         margin-bottom: 1rem;
     }
     .chart-card-header {
         padding: 0.75rem 1.25rem;
-        border-bottom: 1px solid var(--chart-header-border);
-        font-size: 0.9rem;
+        border-bottom: 1px solid var(--mih-divider);
+        font-size: 0.8125rem;
         font-weight: 600;
-        color: var(--chart-header-color);
+        color: var(--mih-text-secondary);
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        letter-spacing: 0.005em;
     }
     .chart-card-body {
         padding: 0.5rem;
     }
 
-    /* Altair chart card (fallback for unwrapped charts) */
+    /* Fallback for un-wrapped Altair charts */
     [data-testid="stVegaLiteChart"] {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 12px;
+        background: var(--mih-surface);
+        border: 1px solid var(--mih-border-soft);
+        border-radius: 4px;
         padding: 0.75rem;
-        box-shadow: 0 1px 3px var(--shadow-light);
+        box-shadow: none;
     }
 
     /* ── Welcome step cards ── */
     .welcome-step {
         text-align: center;
-        padding: 2rem 1rem;
-        background: var(--bg-subtle);
-        border: 1px solid var(--card-border);
-        border-radius: 14px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        padding: 1.75rem 1rem;
+        background: var(--mih-surface);
+        border: 1px solid var(--mih-border-soft);
+        border-radius: 4px;
+        transition: border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     .welcome-step:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(79,70,229,0.08);
+        border-color: var(--mih-primary);
+        box-shadow: var(--mih-shadow-1);
     }
     .welcome-step-icon {
-        font-size: 2.5rem;
+        font-size: 2rem;
         margin-bottom: 0.5rem;
+        color: var(--mih-primary);
     }
     .welcome-step-title {
-        font-weight: 700;
-        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.9375rem;
+        color: var(--mih-text-primary);
         margin-bottom: 0.25rem;
     }
     .welcome-step-desc {
-        color: var(--text-secondary);
-        font-size: 0.85rem;
+        color: var(--mih-text-tertiary);
+        font-size: 0.8125rem;
+        line-height: 1.5;
     }
 
     /* ── Download card ── */
     .download-card {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 14px;
-        padding: 1.5rem;
+        background: var(--mih-surface);
+        border: 1px solid var(--mih-border-soft);
+        border-radius: 4px;
+        padding: 1.25rem;
         text-align: center;
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
     }
     .download-card-icon {
-        font-size: 2rem;
+        font-size: 1.5rem;
         margin-bottom: 0.5rem;
+        color: var(--mih-primary);
     }
     .download-card-title {
         font-weight: 600;
-        color: var(--text-primary);
+        font-size: 0.9375rem;
+        color: var(--mih-text-primary);
         margin-bottom: 0.25rem;
     }
     .download-card-desc {
-        color: var(--text-secondary);
-        font-size: 0.85rem;
-        margin-bottom: 1rem;
+        color: var(--mih-text-tertiary);
+        font-size: 0.8125rem;
+        margin-bottom: 0.875rem;
+        line-height: 1.5;
     }
 
     /* ── Footer ── */
     .footer-text {
-        color: #94A3B8;
-        font-size: 0.8rem;
+        color: var(--mih-text-muted);
+        font-size: 0.75rem;
         text-align: center;
         padding: 1rem 0;
+        letter-spacing: 0.01em;
     }
 
-    /* ── Responsive: tablet (≤1024px) — collapse horizontal blocks to single column ── */
+    /* Number-like content in dataframes uses Plex Mono */
+    [data-testid="stDataFrame"] [role="gridcell"] {
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Responsive: tablet (≤1024px) ── */
     @media (max-width: 1024px) {
         [data-testid="stHorizontalBlock"] {
             flex-wrap: wrap;
@@ -493,37 +519,17 @@ st.markdown("""
             flex: 1 1 100%;
             min-width: 0;
         }
-        .hero-section {
-            padding: 1.5rem 1.5rem;
-        }
+        .hero-section { padding: 1.5rem 1.5rem; }
     }
 
     /* ── Responsive: mobile (≤768px) ── */
     @media (max-width: 768px) {
-        /* Hero compaction */
-        .hero-section {
-            padding: 1.25rem 1rem;
-            border-radius: 12px;
-        }
-        .main-header {
-            font-size: 1.6rem;
-        }
-        .main-subtitle {
-            font-size: 0.85rem;
-        }
-
-        /* Metric cards: tighter padding, smaller value (min 12px enforced) */
-        [data-testid="stMetric"] {
-            padding: 0.75rem 0.9rem;
-        }
-        [data-testid="stMetricValue"] {
-            font-size: 1.4rem;
-        }
-        [data-testid="stMetricLabel"] {
-            font-size: 0.78rem;
-        }
-
-        /* Tab bar: horizontal scroll instead of wrapping */
+        .hero-section { padding: 1.25rem 1rem; }
+        .main-header  { font-size: 1.375rem; }
+        .main-subtitle { font-size: 0.8125rem; }
+        [data-testid="stMetric"] { padding: 0.75rem 0.9rem; }
+        [data-testid="stMetricValue"] { font-size: 1.25rem; }
+        [data-testid="stMetricLabel"] { font-size: 0.75rem; }
         .stTabs [data-baseweb="tab-list"] {
             overflow-x: auto;
             overflow-y: hidden;
@@ -531,33 +537,18 @@ st.markdown("""
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
         }
-        .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
-            height: 4px;
-        }
+        .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { height: 4px; }
         .stTabs [data-baseweb="tab"] {
-            padding: 6px 12px;
-            font-size: 0.8rem;
+            padding: 8px 12px;
+            font-size: 0.8125rem;
             white-space: nowrap;
             flex-shrink: 0;
         }
-
-        /* Tables & charts: never overflow viewport */
         [data-testid="stDataFrame"],
-        [data-testid="stVegaLiteChart"] {
-            max-width: 100%;
-            overflow-x: auto;
-        }
-        [data-testid="stVegaLiteChart"] {
-            padding: 0.5rem;
-        }
-
-        /* Welcome / download cards: tighter padding */
-        .welcome-step {
-            padding: 1.25rem 0.75rem;
-        }
-        .download-card {
-            padding: 1rem;
-        }
+        [data-testid="stVegaLiteChart"] { max-width: 100%; overflow-x: auto; }
+        [data-testid="stVegaLiteChart"] { padding: 0.5rem; }
+        .welcome-step  { padding: 1.25rem 0.75rem; }
+        .download-card { padding: 1rem; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -742,8 +733,9 @@ def fetch_and_process_from_notion(_token: str, ref_date: date):
 # ============================================
 st.markdown('''
 <div class="hero-section">
-    <h1 class="main-header">📊 团队工时分析系统</h1>
-    <p class="main-subtitle">实时追踪团队工时数据，智能分析工作负荷与项目投入</p>
+    <div class="main-eyebrow">美年健康研究院 · MIH</div>
+    <h1 class="main-header">团队工时分析系统</h1>
+    <p class="main-subtitle">追踪工时数据 · 解析工作负荷 · 洞察项目投入</p>
 </div>
 ''', unsafe_allow_html=True)
 
@@ -1160,7 +1152,7 @@ with tab3:
             chart_bar = alt.Chart(bar_melted).mark_bar().encode(
                 y=alt.Y('成员:N', sort='-x', title=None),
                 x=alt.X('工时:Q', title='工时 (h)'),
-                color=alt.Color('类型:N', scale=alt.Scale(range=['#4F46E5', '#E2E8F0'])),
+                color=alt.Color('类型:N', scale=alt.Scale(range=['#2F68B2', '#D9D9D9'])),
                 tooltip=['成员', '类型', '工时', '达成率']
             ).properties(height=max(len(current_members) * 35, 200))
             st.altair_chart(chart_bar, use_container_width=True)
@@ -1202,7 +1194,7 @@ with tab3:
                 )
                 status_color = alt.Scale(
                     domain=['超负荷', '偏低', '正常'],
-                    range=['#DC2626', '#D97706', '#059669']
+                    range=['#C0392B', '#D97706', '#1B7F4D']
                 )
                 bars = alt.Chart(rate_data).mark_bar().encode(
                     y=alt.Y('成员:N', sort='-x', title=None),
@@ -1218,7 +1210,7 @@ with tab3:
                 ])
                 rules = alt.Chart(rule_data).mark_rule(strokeDash=[4, 4]).encode(
                     x='阈值:Q',
-                    color=alt.value('#94A3B8'),
+                    color=alt.value('#8C8C8C'),
                     tooltip=['标签']
                 )
                 st.altair_chart(bars + rules, use_container_width=True)
@@ -1237,7 +1229,7 @@ with tab3:
                 chart_attr = alt.Chart(attr_df).mark_bar().encode(
                     y=alt.Y('属性:N', sort='-x', title=None),
                     x=alt.X('工时:Q', title='工时 (h)'),
-                    color=alt.value('#7C3AED'),
+                    color=alt.value('#1A3A6E'),
                     tooltip=['属性', '工时']
                 ).properties(height=max(len(attr_df) * 35, 150))
                 st.altair_chart(chart_attr, use_container_width=True)
@@ -1254,11 +1246,11 @@ with tab3:
             trend.columns = ['日期', '工时']
             trend = trend.sort_values('日期')
 
-            area = alt.Chart(trend).mark_area(opacity=0.15, color='#4F46E5').encode(
+            area = alt.Chart(trend).mark_area(opacity=0.12, color='#2F68B2').encode(
                 x=alt.X('日期:T', title=None),
                 y=alt.Y('工时:Q', title='工时 (h)')
             )
-            line = alt.Chart(trend).mark_line(point=True, color='#4F46E5').encode(
+            line = alt.Chart(trend).mark_line(point=True, color='#2F68B2').encode(
                 x=alt.X('日期:T', title=None),
                 y=alt.Y('工时:Q', title='工时 (h)'),
                 tooltip=[alt.Tooltip('日期:T', format='%m-%d'), '工时']
@@ -1277,7 +1269,7 @@ with tab3:
                 chart_pri = alt.Chart(pri_df).mark_bar().encode(
                     y=alt.Y('优先级:N', sort='-x', title=None),
                     x=alt.X('工时:Q', title='工时 (h)'),
-                    color=alt.value('#06B6D4'),
+                    color=alt.value('#5F8BC4'),
                     tooltip=['优先级', '工时']
                 ).properties(height=max(len(pri_df) * 35, 150))
                 st.altair_chart(chart_pri, use_container_width=True)
@@ -1304,7 +1296,7 @@ with tab3:
             y=alt.Y('成员:N'),
             text=alt.Text('工时:Q', format='.1f'),
             color=alt.Color('_text_color:N',
-                            scale=alt.Scale(domain=['高', '低'], range=['white', '#1E293B']),
+                            scale=alt.Scale(domain=['高', '低'], range=['white', '#1F2933']),
                             legend=None)
         )
         st.altair_chart(
@@ -1343,7 +1335,7 @@ with tab4:
                 chart_next_member = alt.Chart(next_bar_data).mark_bar(cornerRadiusEnd=4).encode(
                     y=alt.Y('成员:N', sort='-x', title=None),
                     x=alt.X('预计工时:Q', title='工时 (h)'),
-                    color=alt.value('#4F46E5'),
+                    color=alt.value('#2F68B2'),
                     tooltip=['成员', '预计工时']
                 ).properties(height=max(len(next_members) * 35, 150))
                 st.altair_chart(chart_next_member, use_container_width=True)
@@ -1359,7 +1351,7 @@ with tab4:
                 chart_next_proj = alt.Chart(next_proj_data).mark_bar(cornerRadiusEnd=4).encode(
                     y=alt.Y('项目:N', sort='-x', title=None),
                     x=alt.X('预计工时:Q', title='工时 (h)'),
-                    color=alt.value('#7C3AED'),
+                    color=alt.value('#1A3A6E'),
                     tooltip=['项目', '预计工时']
                 ).properties(height=max(len(next_projects[:8]) * 35, 150))
                 st.altair_chart(chart_next_proj, use_container_width=True)

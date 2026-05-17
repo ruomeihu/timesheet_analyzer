@@ -1,18 +1,20 @@
+# MIH 品牌主题（美年健康研究院）
+# 颜色 token 来源: /Users/huruomei/.claude/skills/mih_brand_guidelines/assets/design_tokens.css
 [theme]
-primaryColor = "#4F46E5"
+primaryColor = "#2F68B2"
 font = "sans serif"
 
 [theme.light]
-primaryColor = "#4F46E5"
-backgroundColor = "#FAFBFC"
-secondaryBackgroundColor = "#F1F5F9"
-textColor = "#1E293B"
+primaryColor = "#2F68B2"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#FAFAFA"
+textColor = "#1F2933"
 
 [theme.dark]
-primaryColor = "#818CF8"
-backgroundColor = "#0F172A"
-secondaryBackgroundColor = "#1E293B"
-textColor = "#F1F5F9"
+primaryColor = "#62B4DD"
+backgroundColor = "#0F1419"
+secondaryBackgroundColor = "#1F2933"
+textColor = "#F5F5F5"
 
 [server]
 headless = true

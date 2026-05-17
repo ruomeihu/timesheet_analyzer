@@ -37,20 +37,22 @@ def setup_chinese_font():
 # 初始化字体
 setup_chinese_font()
 
-# 统一调色板
+# 统一调色板（MIH 品牌规范 · 美年健康研究院）
+# Token 来源: ~/.claude/skills/mih_brand_guidelines/assets/color_tokens.json
 COLORS = {
-    'primary': '#4F46E5',       # Indigo
-    'primary_light': '#818CF8', # Light indigo
-    'secondary': '#7C3AED',     # Violet
-    'success': '#059669',       # Emerald
-    'warning': '#D97706',       # Amber
-    'danger': '#DC2626',        # Red
-    'neutral': '#94A3B8',       # Slate
-    'bg': '#F8FAFC',            # Light background
-    'text': '#1E293B',          # Dark text
+    'primary': '#2F68B2',       # MIH 标准蓝
+    'primary_light': '#5F8BC4', # MIH 中蓝
+    'secondary': '#1A3A6E',     # MIH 墨蓝
+    'success': '#1B7F4D',
+    'warning': '#D97706',
+    'danger': '#C0392B',
+    'neutral': '#8C8C8C',
+    'bg': '#FAFAFA',
+    'text': '#1F2933',
 }
-PALETTE = ['#4F46E5', '#7C3AED', '#06B6D4', '#059669', '#D97706',
-           '#EC4899', '#F43F5E', '#8B5CF6', '#14B8A6', '#F59E0B']
+# 单色主导：蓝系优先，粉/暖色仅在强调时出现
+PALETTE = ['#2F68B2', '#1A3A6E', '#5F8BC4', '#62B4DD', '#B92957',
+           '#D97706', '#1B7F4D', '#7B5EA7', '#C0392B', '#8C8C8C']
 
 
 def create_visualizations(
@@ -296,8 +298,9 @@ def _plot_heatmap(ax: plt.Axes, df: pd.DataFrame) -> None:
     )
     
     from matplotlib.colors import LinearSegmentedColormap
+    # MIH 序列色（浅 → 深 7 阶，蓝系单色渐进）
     custom_cmap = LinearSegmentedColormap.from_list(
-        'indigo_heat', ['#F1F5F9', '#C7D2FE', '#818CF8', '#4F46E5', '#3730A3'])
+        'mih_heat', ['#E9F1FA', '#CBE6F4', '#9DC8E8', '#6FA9D8', '#5F8BC4', '#2F68B2', '#0F348D'])
     im = ax.imshow(pivot_data.values, cmap=custom_cmap, aspect='auto')
     
     ax.set_xticks(range(len(pivot_data.columns)))

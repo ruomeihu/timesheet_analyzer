@@ -60,6 +60,24 @@ class AIInsightResult:
     raw_response: str = ""  # 保留原始响应用于调试
 
 
+def serialize_ai_insights(result: AIInsightResult) -> Dict[str, Any]:
+    """把 AIInsightResult 转为可 JSON 序列化的 dict。"""
+    return asdict(result)
+
+
+def deserialize_ai_insights(data: Dict[str, Any]) -> AIInsightResult:
+    """从 sidecar JSON 里的 dict 重建 AIInsightResult,重建嵌套 dataclass。"""
+    quick = QuickScanResult(**(data.get("quick_scan") or {}))
+    dims = [AnalysisDimension(**d) for d in (data.get("dimensions") or [])]
+    return AIInsightResult(
+        dimensions=dims,
+        quick_scan=quick,
+        executive_summary=data.get("executive_summary", "") or "",
+        recommendations=data.get("recommendations") or [],
+        raw_response=data.get("raw_response", "") or "",
+    )
+
+
 class AIAnalyzer:
     """
     Claude AI 驱动的深度工时分析器

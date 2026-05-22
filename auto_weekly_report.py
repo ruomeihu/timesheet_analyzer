@@ -258,18 +258,23 @@ def send_email(subject: str, body: str, html_body: str = None, attachments: list
         else:
             msg.attach(MIMEText(body, "plain", "utf-8"))
         
-        # 附件
+        # 附件: 支持 str 或 (path, display_name) 元组,后者用于自定义下载名
         if attachments:
-            for file_path in attachments:
+            for item in attachments:
+                if isinstance(item, (tuple, list)) and len(item) == 2:
+                    file_path, display_name = item[0], item[1]
+                else:
+                    file_path, display_name = item, os.path.basename(item)
                 if os.path.exists(file_path):
                     with open(file_path, "rb") as f:
                         part = MIMEBase("application", "octet-stream")
                         part.set_payload(f.read())
                     encoders.encode_base64(part)
-                    filename = os.path.basename(file_path)
+                    # RFC 2231 编码以支持中文文件名
                     part.add_header(
                         "Content-Disposition",
-                        f"attachment; filename={filename}"
+                        "attachment",
+                        filename=("utf-8", "", display_name),
                     )
                     msg.attach(part)
         
@@ -411,7 +416,9 @@ def main():
     if CONFIG["email"]["enabled"]:
         attachments = [result["report_path"], result["chart_path"]]
         if result.get("pdf_path"):
-            attachments.append(result["pdf_path"])
+            attachments.append(
+                (result["pdf_path"], f"工时分析周报_数据平台部_{date_str}.pdf")
+            )
         send_email(
             subject=f"MIH 工时周报 - 第 {week_num} 周",
             body=message,

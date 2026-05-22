@@ -116,6 +116,15 @@ def render_report_artifacts(
                     pdf_path = pdf_candidate
 
     generated_at = datetime.now().isoformat(timespec="seconds")
+
+    ai_payload = None
+    if ai_insights is not None:
+        from src.ai_analyzer import serialize_ai_insights
+        try:
+            ai_payload = serialize_ai_insights(ai_insights)
+        except Exception:
+            ai_payload = None
+
     with open(sidecar_path, "w", encoding="utf-8") as f:
         json.dump(
             {
@@ -124,6 +133,8 @@ def render_report_artifacts(
                 "generationId": generation_id,
                 "generatedAt": generated_at,
                 "source": source,
+                "aiInsights": ai_payload,
+                "aiInsightsGeneratedAt": generated_at if ai_payload else None,
             },
             f,
             ensure_ascii=False,

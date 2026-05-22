@@ -824,6 +824,32 @@ consider_leaves = st.session_state.analysis_params['consider_leaves']
 # ============================================
 analyzer = TimesheetAnalyzer(df)
 
+# 优先从 sidecar 复用上次的 AI 深度分析结果 (同 ISO 周匹配),避免重复调 Claude API
+if ai_enabled and 'ai_insights' not in st.session_state:
+    _ref_monday = reference_date - timedelta(days=reference_date.weekday())
+    for _json_path in sorted(Path("reports").glob("report_*.json"), reverse=True):
+        try:
+            _fd = datetime.strptime(_json_path.stem.replace("report_", ""), "%Y%m%d").date()
+        except ValueError:
+            continue
+        if _fd - timedelta(days=_fd.weekday()) != _ref_monday:
+            continue
+        try:
+            _sc = json.loads(_json_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if _sc.get("aiInsights"):
+            try:
+                from src.ai_analyzer import deserialize_ai_insights
+                st.session_state['ai_insights'] = deserialize_ai_insights(_sc["aiInsights"])
+                st.session_state['ai_insights_ts'] = (
+                    _sc.get("aiInsightsGeneratedAt") or _sc.get("generatedAt") or ""
+                )
+                st.session_state['ai_insights_source'] = _json_path.name
+            except Exception:
+                pass
+            break
+
 # AI 深度分析自动运行 (与 auto_weekly_report.py 行为一致;失败不阻断主流程)
 if ai_enabled and api_key and 'ai_insights' not in st.session_state:
     with st.spinner("🤖 正在调用 Claude API 进行深度分析 (约 30-60 秒)..."):
@@ -832,6 +858,7 @@ if ai_enabled and api_key and 'ai_insights' not in st.session_state:
             if _ai_result:
                 st.session_state['ai_insights'] = _ai_result
                 st.session_state['ai_insights_ts'] = datetime.now().isoformat(timespec="seconds")
+                st.session_state.pop('ai_insights_source', None)
         except Exception as _e:
             st.warning(f"AI 深度分析失败 (不影响其他功能): {_e}")
 
@@ -1431,7 +1458,12 @@ with tab5:
         ai_result = st.session_state.get('ai_insights')
 
         if ai_result:
-            st.caption("✅ 分析结果已自动生成 (开始分析时随主流程一起跑)")
+            _ai_source = st.session_state.get('ai_insights_source')
+            _ai_ts_caption = st.session_state.get('ai_insights_ts', '')
+            if _ai_source:
+                st.caption(f"♻️ 复用 sidecar 缓存的 AI 分析 ({_ai_source} · 生成于 {_ai_ts_caption})")
+            else:
+                st.caption(f"✅ 分析结果已自动生成 (开始分析时随主流程一起跑 · {_ai_ts_caption})")
             # 执行摘要
             st.markdown("#### 📋 执行摘要")
             st.info(ai_result.executive_summary)
@@ -1465,6 +1497,7 @@ with tab5:
 
             if st.button("🔄 重新运行 AI 分析"):
                 st.session_state.pop('ai_insights', None)
+                st.session_state.pop('ai_insights_source', None)
                 st.rerun()
         else:
             st.info("AI 深度分析未生成 (可能是 API Key 缺失或调用失败)。点击下面按钮手动重试。")
@@ -1475,6 +1508,7 @@ with tab5:
                         if _result:
                             st.session_state['ai_insights'] = _result
                             st.session_state['ai_insights_ts'] = datetime.now().isoformat(timespec="seconds")
+                            st.session_state.pop('ai_insights_source', None)
                             st.rerun()
                         else:
                             st.error("AI 分析返回空结果，请检查 API Key。")
@@ -1482,7 +1516,8 @@ with tab5:
                         st.error(f"AI 分析出错: {e}")
 
             if st.button("清除分析结果"):
-                del st.session_state['ai_insights']
+                st.session_state.pop('ai_insights', None)
+                st.session_state.pop('ai_insights_source', None)
                 st.rerun()
 
 # ============================================
@@ -1578,13 +1613,21 @@ with tab6:
             st.info(f"本周 ({_ref_monday.strftime('%Y-%m-%d')} 起) 暂无 Gamma PPT，点下面按钮立即生成。")
 
         # 操作按钮区
+        _force_rerun_ai = st.checkbox(
+            "🔁 强制重跑 AI 深度分析",
+            value=False,
+            help="默认复用当前 AI 分析结果。仅在 Notion 数据有重大更新、需要刷新 AI 洞察时勾选。",
+            disabled=not (api_key and ai_enabled),
+            key="force_rerun_ai",
+        )
+
         _col_a, _col_b, _col_c = st.columns([1, 1, 1])
         with _col_a:
             _regen_clicked = st.button(
                 "🔄 重新生成 PPT",
                 use_container_width=True,
                 type="primary" if _is_stale or not _gamma_url else "secondary",
-                help="基于当前已加载的数据 + 重跑 AI 深度分析,调用 Gamma 重新生成 PPT (~3–5 分钟)",
+                help="默认复用当前 AI 分析结果,只调用 Gamma 重新生成 PPT (~3–5 分钟)；勾选上方'强制重跑 AI'可同时刷新分析。",
             )
         with _col_b:
             if _gamma_url:
@@ -1596,7 +1639,7 @@ with tab6:
                     st.download_button(
                         "📥 下载 PDF",
                         data=_pdf_path.read_bytes(),
-                        file_name=_pdf_path.name,
+                        file_name=f"工时分析周报_数据平台部_{reference_date.strftime('%Y%m%d')}.pdf",
                         mime="application/pdf",
                         use_container_width=True,
                     )
@@ -1609,20 +1652,22 @@ with tab6:
             if not _gamma_key:
                 st.error("未检测到 GAMMA_API_KEY，无法调用 Gamma。请配置 Streamlit Secrets 或环境变量。")
             else:
-                _regen_ai = ai_insights
-                # 用户选择「一并自动重跑 AI」,api_key 可用时先重跑
-                if api_key and ai_enabled:
-                    with st.spinner("🤖 重跑 AI 深度分析 (~30–60 秒)..."):
+                _regen_ai = ai_insights  # 默认复用现有 AI 结果
+                if _force_rerun_ai and api_key and ai_enabled:
+                    with st.spinner("🤖 强制重跑 AI 深度分析 (~30–60 秒)..."):
                         try:
                             _regen_ai = analyzer.generate_ai_insights("本周", api_key)
                             if _regen_ai:
                                 st.session_state['ai_insights'] = _regen_ai
                                 st.session_state['ai_insights_ts'] = datetime.now().isoformat(timespec="seconds")
+                                st.session_state.pop('ai_insights_source', None)
                         except Exception as _e:
                             st.warning(f"AI 重跑失败,将使用现有 AI 结果继续: {_e}")
                             _regen_ai = ai_insights
+                elif _regen_ai is not None:
+                    st.caption("♻️ 复用当前 AI 分析结果 (未勾选强制重跑)")
                 else:
-                    st.info("未配置 ANTHROPIC_API_KEY,跳过 AI 重跑,直接用现有分析重生 PPT。")
+                    st.info("当前无 AI 分析结果可复用,将仅生成不含 AI 章节的 PPT。")
 
                 with st.spinner("🎬 调用 Gamma 生成 PPT (~3–5 分钟,请勿关闭页面)..."):
                     try:

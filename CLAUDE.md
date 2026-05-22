@@ -71,6 +71,9 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - `@st.cache_data` 用于缓存数据加载，Notion 直连 TTL=300 秒
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`
 - `reference_date` in `app.py` is independent of the "预生成报告" CSV picker. When matching dated artifacts (e.g., `reports/report_YYYYMMDD.json` sidecar), match by ISO week not exact date — derive Monday-of-week from both sides.
+- AI 深度分析默认从 sidecar 复用,不调 Claude API。仅当用户在 Tab 6 勾选「🔁 强制重跑 AI 深度分析」时才重跑。新增/删除 `ai_insights` session_state 时同步处理 `ai_insights_source` 标签
+- PPT/PDF 下载文件名固定为 `工时分析周报_数据平台部_YYYYMMDD.pdf`(Streamlit Tab 6 下载按钮 + 邮件附件),日期取 `reference_date` / `ref_date`
+- `send_email(attachments=...)` 支持 `str` 或 `(path, display_name)` 元组;中文文件名走 RFC 2231 `filename*=utf-8''…` 头(已在 `auto_weekly_report.py:send_email` 内部封装)
 
 ## Environment Variables
 
@@ -107,11 +110,12 @@ All four must also live in GitHub Actions secrets for the Friday CI workflow to 
 ## Known Issues / Tech Debt
 
 - [ ] Webhook notifications are coded but disabled (planned activation in Phase 3). Email is active via 126 SMTP (smtp.126.com:465 SSL) using `MAIL_SENDER` env var
-- [ ] `run_analysis()` in `auto_weekly_report.py` duplicates the pipeline used by `app.py`'s AI 分析 tab — candidate for extraction to `src/report_pipeline.py`
 - [ ] CI `git add reports/` commits the Gamma PDF every Friday (~4 MB/week, ~200 MB/year). Consider git LFS or `.gitignore reports/*.pdf` (would break Streamlit Cloud's PDF download button)
 
 ## Gamma Integration
 
-`auto_weekly_report.py` calls Gamma Generate API (via `src/gamma_client.py`) to turn the Markdown report into an online presentation. Sidecar `reports/report_YYYYMMDD.json` stores `gammaUrl` / `exportUrl` so `app.py` Tab 6 can embed the deck via iframe. Requires `GAMMA_API_KEY` env var (Gamma Pro+); falls back to skip with a warning if missing.
+`auto_weekly_report.py` calls Gamma Generate API (via `src/gamma_client.py`) to turn the Markdown report into an online presentation. Sidecar `reports/report_YYYYMMDD.json` stores `gammaUrl` / `exportUrl` (so `app.py` Tab 6 can embed the deck via iframe) plus `aiInsights` / `aiInsightsGeneratedAt` (serialized `AIInsightResult` — Streamlit loads it on data load to skip the Claude API call). Requires `GAMMA_API_KEY` env var (Gamma Pro+); falls back to skip with a warning if missing.
+
+`AIInsightResult` (de)serialization helpers live in `src/ai_analyzer.py`: `serialize_ai_insights()` / `deserialize_ai_insights()`. Pipeline-side wiring: `src/report_pipeline.py:render_report_artifacts` writes the field; `app.py` (data-load block) and the Tab 6 regen path read it.
 
 Gamma API quirks: `folderIds` is a JSON array (plural), `themeId` lowercase `d`, generation is async with polling at `GET /v1.0/generations/{id}`, embed URL = `gammaUrl.replace("/docs/", "/embed/")`.

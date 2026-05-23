@@ -1,7 +1,204 @@
 {
-  "gammaUrl": "https://gamma.app/docs/vdgcbjjpou0pw3s",
-  "exportUrl": "https://assets.api.gamma.app/export/pdf/vdgcbjjpou0pw3s/5ee1432093490d1a39845b6d6a12a7b1/vdgcbjjpou0pw3s.pdf",
-  "generationId": "nIwScgUtxb6Ynhekf5wma",
-  "generatedAt": "2026-05-22T06:31:58",
-  "source": "ci"
+  "gammaUrl": "https://gamma.app/docs/l568g94prvi3w45",
+  "exportUrl": "https://assets.api.gamma.app/export/pdf/l568g94prvi3w45/8675f15794983c1a3112248fd15bf66c/l568g94prvi3w45.pdf",
+  "generationId": "YrGSBNlicUHLmhELb0E4A",
+  "generatedAt": "2026-05-23T09:43:08",
+  "source": "ci",
+  "weekStats": {
+    "weekNum": 21,
+    "totalHours": 258.5,
+    "projectCount": 15,
+    "top3Projects": [
+      {
+        "name": "数据中台建设项目",
+        "hours": 79.0
+      },
+      {
+        "name": "2025年度健康体检大数据蓝皮书（美年+慈铭）",
+        "hours": 44.5
+      },
+      {
+        "name": "中再保险-全癌种数据合作",
+        "hours": 38.5
+      }
+    ],
+    "unalignedHours": 27.0,
+    "unalignedPct": 10.4
+  },
+  "aiInsights": {
+    "dimensions": [
+      {
+        "dimension": "战略一致性",
+        "indicators": [
+          {
+            "name": "战略 vs 琐事比例",
+            "value": "战略项目 48.3%, 维持性事务 51.7%",
+            "assessment": "良好",
+            "finding": "战略项目投入接近一半，主要集中在数据中台建设（30.6%）和美年血液学项目（6.2%），符合技术导向部门特点",
+            "severity": "low"
+          },
+          {
+            "name": "重点项目投入度",
+            "value": "TOP3项目占比62.7%",
+            "assessment": "充足",
+            "finding": "数据中台建设项目79小时、美年蓝皮书44.5小时、中再保险38.5小时，资源配置合理",
+            "severity": "low"
+          }
+        ],
+        "summary": "战略重点突出，资源配置基本合理",
+        "severity": "low"
+      },
+      {
+        "dimension": "执行效率与模式",
+        "indicators": [
+          {
+            "name": "碎片化程度",
+            "value": "魏超日均4.8个项目，李倩日均2.6个项目",
+            "assessment": "严重",
+            "finding": "魏超作为项目经理承担过多跨项目协调工作，任务切换频繁，平均任务时长仅1.2小时，严重影响深度工作",
+            "severity": "high"
+          },
+          {
+            "name": "会议/协作占比",
+            "value": "团队管理与协调占比8.7%",
+            "assessment": "合理",
+            "finding": "协调沟通时间控制在合理范围内，主要集中在胡若玫的管理职责上",
+            "severity": "low"
+          }
+        ],
+        "summary": "存在严重的工作碎片化问题，需要优化任务分配",
+        "severity": "high"
+      },
+      {
+        "dimension": "团队健康与风险",
+        "indicators": [
+          {
+            "name": "隐性加班与负荷分布",
+            "value": "胡若玫42.5小时（106.2%），其他成员正常",
+            "assessment": "良好",
+            "finding": "仅副院长轻微超时，团队整体负荷分布均衡，无明显过载风险",
+            "severity": "low"
+          },
+          {
+            "name": "异常空白或通用填充",
+            "value": "未立项/临时指派占比6.2%",
+            "assessment": "可接受",
+            "finding": "临时性工作占比较低，主要为福建大数据集团交流等业务拓展活动",
+            "severity": "low"
+          }
+        ],
+        "summary": "团队健康状况良好，工作负荷分布合理",
+        "severity": "low"
+      },
+      {
+        "dimension": "财务与合规",
+        "indicators": [
+          {
+            "name": "资本化工时占比",
+            "value": "战略项目48.3%, 付费项目33.6%",
+            "assessment": "良好",
+            "finding": "战略项目投入较高，付费项目占比合理，支持/运营项目控制在18.1%",
+            "severity": "low"
+          },
+          {
+            "name": "跨部门支持成本",
+            "value": "支持/运营项目占比18.1%",
+            "assessment": "合理",
+            "finding": "跨部门支持和日常运营工作占比适中，未过度消耗团队资源",
+            "severity": "low"
+          }
+        ],
+        "summary": "财务投入产出比合理，项目结构健康",
+        "severity": "low"
+      }
+    ],
+    "quick_scan": {
+      "anomalies": [
+        {
+          "type": "工时异常",
+          "member": "魏超",
+          "value": "32小时",
+          "concern": "全职员工工时偏低，可能存在未记录工时"
+        },
+        {
+          "type": "碎片化异常",
+          "member": "魏超",
+          "value": "日均4.8个项目",
+          "concern": "任务切换过于频繁，影响工作效率"
+        }
+      ],
+      "core_projects": [
+        {
+          "project": "数据中台建设项目",
+          "hours": 79,
+          "status": "充足",
+          "comment": "3名核心技术人员全力投入"
+        },
+        {
+          "project": "美年蓝皮书",
+          "hours": 44.5,
+          "status": "充足",
+          "comment": "项目进入收尾阶段，资源配置合理"
+        },
+        {
+          "project": "中再保险合作",
+          "hours": 38.5,
+          "status": "充足",
+          "comment": "售前项目投入较大，需关注转化效果"
+        }
+      ],
+      "black_holes": [
+        {
+          "category": "未立项/临时指派",
+          "hours": 16,
+          "percentage": "6.2%",
+          "risk": "临时性工作占比可控"
+        },
+        {
+          "category": "团队管理与数据运营",
+          "hours": 22.5,
+          "percentage": "8.7%",
+          "risk": "管理成本合理"
+        }
+      ],
+      "action_items": [
+        "立即优化魏超的任务分配，减少项目切换频率",
+        "建立项目优先级管理机制，避免同时处理过多项目",
+        "确认魏超工时记录完整性，补充遗漏工时"
+      ]
+    },
+    "executive_summary": "本周团队工时分配相对合理，战略项目投入占比48.3%，但存在明显的工作碎片化问题。魏超的碎片化程度极高（日均4.8个项目），可能影响深度工作效率。数据中台等核心项目投入充足，但售前支持工作占比较高（14.9%），需要平衡短期商务需求与长期战略目标。团队整体负荷正常，无明显过载风险。",
+    "recommendations": [
+      {
+        "priority": "high",
+        "category": "效率",
+        "title": "优化项目经理工作模式",
+        "description": "为魏超建立时间块管理制度，将相似性质的任务集中处理，减少项目间切换。建议设置专门的协调沟通时间段，其他时间专注单一项目深度工作。",
+        "expected_impact": "提升工作效率30%，减少任务切换成本"
+      },
+      {
+        "priority": "medium",
+        "category": "战略",
+        "title": "平衡售前与研发投入",
+        "description": "中再保险等售前项目投入较大（14.9%），建议建立售前项目评估机制，优先投入高转化概率项目，避免过度消耗研发资源。",
+        "expected_impact": "提高售前转化率，保障核心研发项目资源"
+      },
+      {
+        "priority": "medium",
+        "category": "健康",
+        "title": "建立工时记录规范",
+        "description": "完善工时记录制度，确保所有工作时间得到准确记录。建议实施每日工时确认机制，避免遗漏。",
+        "expected_impact": "提高工时数据准确性，便于精准管理决策"
+      },
+      {
+        "priority": "low",
+        "category": "效率",
+        "title": "优化设计类工作流程",
+        "description": "李倩承担较多设计类工作且任务较为碎片化，建议建立设计需求统一收集和批量处理机制。",
+        "expected_impact": "提升设计工作效率，减少重复沟通成本"
+      }
+    ],
+    "raw_response": "```json\n{\n  \"executive_summary\": \"本周团队工时分配相对合理，战略项目投入占比48.3%，但存在明显的工作碎片化问题。魏超的碎片化程度极高（日均4.8个项目），可能影响深度工作效率。数据中台等核心项目投入充足，但售前支持工作占比较高（14.9%），需要平衡短期商务需求与长期战略目标。团队整体负荷正常，无明显过载风险。\",\n  \"dimensions\": [\n    {\n      \"dimension\": \"战略一致性\",\n      \"indicators\": [\n        {\n          \"name\": \"战略 vs 琐事比例\",\n          \"value\": \"战略项目 48.3%, 维持性事务 51.7%\",\n          \"assessment\": \"良好\",\n          \"finding\": \"战略项目投入接近一半，主要集中在数据中台建设（30.6%）和美年血液学项目（6.2%），符合技术导向部门特点\",\n          \"severity\": \"low\"\n        },\n        {\n          \"name\": \"重点项目投入度\",\n          \"value\": \"TOP3项目占比62.7%\",\n          \"assessment\": \"充足\",\n          \"finding\": \"数据中台建设项目79小时、美年蓝皮书44.5小时、中再保险38.5小时，资源配置合理\",\n          \"severity\": \"low\"\n        }\n      ],\n      \"summary\": \"战略重点突出，资源配置基本合理\",\n      \"severity\": \"low\"\n    },\n    {\n      \"dimension\": \"执行效率与模式\",\n      \"indicators\": [\n        {\n          \"name\": \"碎片化程度\",\n          \"value\": \"魏超日均4.8个项目，李倩日均2.6个项目\",\n          \"assessment\": \"严重\",\n          \"finding\": \"魏超作为项目经理承担过多跨项目协调工作，任务切换频繁，平均任务时长仅1.2小时，严重影响深度工作\",\n          \"severity\": \"high\"\n        },\n        {\n          \"name\": \"会议/协作占比\",\n          \"value\": \"团队管理与协调占比8.7%\",\n          \"assessment\": \"合理\",\n          \"finding\": \"协调沟通时间控制在合理范围内，主要集中在胡若玫的管理职责上\",\n          \"severity\": \"low\"\n        }\n      ],\n      \"summary\": \"存在严重的工作碎片化问题，需要优化任务分配\",\n      \"severity\": \"high\"\n    },\n    {\n      \"dimension\": \"团队健康与风险\",\n      \"indicators\": [\n        {\n          \"name\": \"隐性加班与负荷分布\",\n          \"value\": \"胡若玫42.5小时（106.2%），其他成员正常\",\n          \"assessment\": \"良好\",\n          \"finding\": \"仅副院长轻微超时，团队整体负荷分布均衡，无明显过载风险\",\n          \"severity\": \"low\"\n        },\n        {\n          \"name\": \"异常空白或通用填充\",\n          \"value\": \"未立项/临时指派占比6.2%\",\n          \"assessment\": \"可接受\",\n          \"finding\": \"临时性工作占比较低，主要为福建大数据集团交流等业务拓展活动\",\n          \"severity\": \"low\"\n        }\n      ],\n      \"summary\": \"团队健康状况良好，工作负荷分布合理\",\n      \"severity\": \"low\"\n    },\n    {\n      \"dimension\": \"财务与合规\",\n      \"indicators\": [\n        {\n          \"name\": \"资本化工时占比\",\n          \"value\": \"战略项目48.3%, 付费项目33.6%\",\n          \"assessment\": \"良好\",\n          \"finding\": \"战略项目投入较高，付费项目占比合理，支持/运营项目控制在18.1%\",\n          \"severity\": \"low\"\n        },\n        {\n          \"name\": \"跨部门支持成本\",\n          \"value\": \"支持/运营项目占比18.1%\",\n          \"assessment\": \"合理\",\n          \"finding\": \"跨部门支持和日常运营工作占比适中，未过度消耗团队资源\",\n          \"severity\": \"low\"\n        }\n      ],\n      \"summary\": \"财务投入产出比合理，项目结构健康\",\n      \"severity\": \"low\"\n    }\n  ],\n  \"quick_scan\": {\n    \"anomalies\": [\n      {\"type\": \"工时异常\", \"member\": \"魏超\", \"value\": \"32小时\", \"concern\": \"全职员工工时偏低，可能存在未记录工时\"},\n      {\"type\": \"碎片化异常\", \"member\": \"魏超\", \"value\": \"日均4.8个项目\", \"concern\": \"任务切换过于频繁，影响工作效率\"}\n    ],\n    \"core_projects\": [\n      {\"project\": \"数据中台建设项目\", \"hours\": 79, \"status\": \"充足\", \"comment\": \"3名核心技术人员全力投入\"},\n      {\"project\": \"美年蓝皮书\", \"hours\": 44.5, \"status\": \"充足\", \"comment\": \"项目进入收尾阶段，资源配置合理\"},\n      {\"project\": \"中再保险合作\", \"hours\": 38.5, \"status\": \"充足\", \"comment\": \"售前项目投入较大，需关注转化效果\"}\n    ],\n    \"black_holes\": [\n      {\"category\": \"未立项/临时指派\", \"hours\": 16, \"percentage\": \"6.2%\", \"risk\": \"临时性工作占比可控\"},\n      {\"category\": \"团队管理与数据运营\", \"hours\": 22.5, \"percentage\": \"8.7%\", \"risk\": \"管理成本合理\"}\n    ],\n    \"action_items\": [\n      \"立即优化魏超的任务分配，减少项目切换频率\",\n      \"建立项目优先级管理机制，避免同时处理过多项目\",\n      \"确认魏超工时记录完整性，补充遗漏工时\"\n    ]\n  },\n  \"recommendations\": [\n    {\n      \"priority\": \"high\",\n      \"category\": \"效率\",\n      \"title\": \"优化项目经理工作模式\",\n      \"description\": \"为魏超建立时间块管理制度，将相似性质的任务集中处理，减少项目间切换。建议设置专门的协调沟通时间段，其他时间专注单一项目深度工作。\",\n      \"expected_impact\": \"提升工作效率30%，减少任务切换成本\"\n    },\n    {\n      \"priority\": \"medium\",\n      \"category\": \"战略\",\n      \"title\": \"平衡售前与研发投入\",\n      \"description\": \"中再保险等售前项目投入较大（14.9%），建议建立售前项目评估机制，优先投入高转化概率项目，避免过度消耗研发资源。\",\n      \"expected_impact\": \"提高售前转化率，保障核心研发项目资源\"\n    },\n    {\n      \"priority\": \"medium\",\n      \"category\": \"健康\",\n      \"title\": \"建立工时记录规范\",\n      \"description\": \"完善工时记录制度，确保所有工作时间得到准确记录。建议实施每日工时确认机制，避免遗漏。\",\n      \"expected_impact\": \"提高工时数据准确性，便于精准管理决策\"\n    },\n    {\n      \"priority\": \"low\",\n      \"category\": \"效率\",\n      \"title\": \"优化设计类工作流程\",\n      \"description\": \"李倩承担较多设计类工作且任务较为碎片化，建议建立设计需求统一收集和批量处理机制。\",\n      \"expected_impact\": \"提升设计工作效率，减少重复沟通成本\"\n    }\n  ]\n}\n```"
+  },
+  "aiInsightsGeneratedAt": "2026-05-23T09:43:08"
 }

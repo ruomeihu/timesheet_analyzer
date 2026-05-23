@@ -16,6 +16,44 @@ from typing import Optional
 import pandas as pd
 
 
+UNALIGNED_KEYWORDS = ("未立项", "临时指派")
+
+
+def _compute_week_stats(
+    summary: dict,
+    project_results: list,
+    reference_date: date,
+) -> dict:
+    total_hours = summary.get("total_hours", 0) or 0
+    project_count = summary.get("project_count", 0) or 0
+
+    top3 = [
+        {"name": p.name, "hours": p.total_hours}
+        for p in project_results[:3]
+    ]
+
+    unaligned_hours = round(
+        sum(
+            p.total_hours
+            for p in project_results
+            if any(kw in p.name for kw in UNALIGNED_KEYWORDS)
+        ),
+        1,
+    )
+    unaligned_pct = (
+        round(unaligned_hours / total_hours * 100, 1) if total_hours > 0 else 0.0
+    )
+
+    return {
+        "weekNum": reference_date.isocalendar()[1],
+        "totalHours": total_hours,
+        "projectCount": project_count,
+        "top3Projects": top3,
+        "unalignedHours": unaligned_hours,
+        "unalignedPct": unaligned_pct,
+    }
+
+
 def render_report_artifacts(
     *,
     df: pd.DataFrame,
@@ -125,6 +163,8 @@ def render_report_artifacts(
         except Exception:
             ai_payload = None
 
+    week_stats = _compute_week_stats(summary, project_results, reference_date)
+
     with open(sidecar_path, "w", encoding="utf-8") as f:
         json.dump(
             {
@@ -133,6 +173,7 @@ def render_report_artifacts(
                 "generationId": generation_id,
                 "generatedAt": generated_at,
                 "source": source,
+                "weekStats": week_stats,
                 "aiInsights": ai_payload,
                 "aiInsightsGeneratedAt": generated_at if ai_payload else None,
             },

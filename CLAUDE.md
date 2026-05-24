@@ -19,6 +19,10 @@ python main.py --input data/timesheet.csv --output output/ --date 2026-02-18
 python auto_weekly_report.py
 python auto_weekly_report.py --week-offset -1 --output-dir ./reports
 
+# 钉钉推送本地手测（需先 export DINGTALK_WEBHOOK / DINGTALK_SECRET）
+python dingtalk_reminder.py
+python dingtalk_report_push.py
+
 # 测试
 python test_spring_festival_weeks.py          # 节假日逻辑测试
 NOTION_API_TOKEN=xxx python test_notion_connection.py  # Notion 连接测试
@@ -31,11 +35,13 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 数据流水线：**数据源 → 加载 → 预处理 → 分析 → 输出**
 
-### 三个入口
+### 入口脚本
 
 - `app.py` — Streamlit Web 前端（6 个 tab），支持三种数据源：预生成报告 / Notion 直连 / CSV 上传
 - `main.py` — 命令行入口，读 CSV 输出报告+图表
 - `auto_weekly_report.py` — 定时任务入口，从 Notion 拉数据 → 分析 → 可选邮件/webhook 通知。GitHub Actions 每周五北京时间 13:00 自动运行
+- `dingtalk_reminder.py` — 周五 9:00 钉钉群提醒填工时，无数据依赖。Workflow: `.github/workflows/dingtalk_reminder.yml`
+- `dingtalk_report_push.py` — 周五 14:00 钉钉群推送本周工时分析周报，读 `reports/report_YYYYMMDD.json` sidecar 的 `weekStats` + `gammaUrl`。sidecar 缺失/字段不全 → 走兜底分支并 @胡若玫。Workflow: `.github/workflows/dingtalk_report_push.yml`
 
 ### 核心模块 (`src/`)
 
@@ -74,6 +80,8 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - AI 深度分析默认从 sidecar 复用,不调 Claude API。仅当用户在 Tab 6 勾选「🔁 强制重跑 AI 深度分析」时才重跑。新增/删除 `ai_insights` session_state 时同步处理 `ai_insights_source` 标签
 - PPT/PDF 下载文件名固定为 `工时分析周报_数据平台部_YYYYMMDD.pdf`(Streamlit Tab 6 下载按钮 + 邮件附件),日期取 `reference_date` / `ref_date`
 - `send_email(attachments=...)` 支持 `str` 或 `(path, display_name)` 元组;中文文件名走 RFC 2231 `filename*=utf-8''…` 头(已在 `auto_weekly_report.py:send_email` 内部封装)
+- 未立项 / 临时指派 工时口径统一在 `src/report_pipeline.py:UNALIGNED_KEYWORDS = ("未立项", "临时指派")`，改这里会同步影响 sidecar `weekStats.unalignedHours` 和钉钉推送内容
+- Sidecar `reports/report_YYYYMMDD.json` 的 `weekStats` 字段（weekNum / totalHours / projectCount / top3Projects / unalignedHours / unalignedPct）由 `src/report_pipeline.py:_compute_week_stats` 生成，是 `dingtalk_report_push.py` 的稳定契约，删字段会触发兜底分支
 
 ## Environment Variables
 
@@ -83,8 +91,9 @@ All read via `os.getenv()` (Streamlit also accepts `st.secrets`):
 - `ANTHROPIC_API_KEY` — Claude AI deep analysis; missing → graceful skip
 - `MAIL_SENDER` — 126 邮箱授权码 (not login password); missing → email skipped
 - `GAMMA_API_KEY` — Gamma Pro+ key for online PPT; missing → skip with warning
+- `DINGTALK_WEBHOOK` / `DINGTALK_SECRET` — 钉钉群机器人 webhook URL + 加签密钥；任一缺失 → `dingtalk_reminder.py` / `dingtalk_report_push.py` 抛 ValueError
 
-All four must also live in GitHub Actions secrets for the Friday CI workflow to use them.
+All of the above must also live in GitHub Actions secrets for the Friday CI workflows to use them.
 
 ## When Making Changes
 

@@ -91,6 +91,10 @@ python auto_weekly_report.py --output-dir ./reports
 | Secret | 说明 |
 |--------|------|
 | `NOTION_API_TOKEN` | Notion API Token |
+| `ANTHROPIC_API_KEY` | Claude AI 深度分析（可选） |
+| `MAIL_SENDER` | 126 邮箱授权码，用于发送周报（可选） |
+| `GAMMA_API_KEY` | Gamma Pro+ key，生成在线 PPT（可选） |
+| `DINGTALK_WEBHOOK` / `DINGTALK_SECRET` | 钉钉机器人，用于周五提醒 + 周报推送 |
 
 也可以随时手动触发：Actions → Weekly Timesheet Report → Run workflow。
 

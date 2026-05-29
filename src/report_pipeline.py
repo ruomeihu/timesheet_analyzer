@@ -18,11 +18,41 @@ import pandas as pd
 
 UNALIGNED_KEYWORDS = ("未立项", "临时指派")
 
+# 项目属性四分类，固定展示顺序（与钉钉推送文案一致）。
+# 取值与 Notion「项目属性」字段一致；不属于这 4 类的项目（未分类等）计入总工时但不进分类。
+CATEGORY_ORDER = ("战略项目", "付费项目", "售前项目", "支持/运营项目")
+
+
+def _category_breakdown(project_results: list) -> list:
+    """按「项目属性」聚合为固定四类顺序，每类含总工时 + Top1 项目。
+
+    返回 [{"attribute", "hours", "top1": {"name", "hours"} | None}, ...]，
+    固定 4 条，0 工时的分类也保留（top1 为 None）。
+    """
+    breakdown = []
+    for category in CATEGORY_ORDER:
+        members = [p for p in project_results if getattr(p, "attribute", None) == category]
+        hours = round(sum(p.total_hours for p in members), 1)
+        top1 = max(members, key=lambda p: p.total_hours) if members else None
+        breakdown.append(
+            {
+                "attribute": category,
+                "hours": hours,
+                "top1": (
+                    {"name": top1.name, "hours": round(top1.total_hours, 1)}
+                    if top1
+                    else None
+                ),
+            }
+        )
+    return breakdown
+
 
 def _compute_week_stats(
     summary: dict,
     project_results: list,
     reference_date: date,
+    next_week_summary: Optional[dict] = None,
 ) -> dict:
     total_hours = summary.get("total_hours", 0) or 0
     project_count = summary.get("project_count", 0) or 0
@@ -31,6 +61,8 @@ def _compute_week_stats(
         {"name": p.name, "hours": p.total_hours}
         for p in project_results[:3]
     ]
+
+    categories = _category_breakdown(project_results)
 
     unaligned_hours = round(
         sum(
@@ -44,13 +76,22 @@ def _compute_week_stats(
         round(unaligned_hours / total_hours * 100, 1) if total_hours > 0 else 0.0
     )
 
+    next_week = None
+    if next_week_summary:
+        next_week = {
+            "totalHours": next_week_summary.get("total_hours", 0) or 0,
+            "projectCount": next_week_summary.get("project_count", 0) or 0,
+        }
+
     return {
         "weekNum": reference_date.isocalendar()[1],
         "totalHours": total_hours,
         "projectCount": project_count,
         "top3Projects": top3,
+        "categories": categories,
         "unalignedHours": unaligned_hours,
         "unalignedPct": unaligned_pct,
+        "nextWeek": next_week,
     }
 
 
@@ -163,7 +204,9 @@ def render_report_artifacts(
         except Exception:
             ai_payload = None
 
-    week_stats = _compute_week_stats(summary, project_results, reference_date)
+    week_stats = _compute_week_stats(
+        summary, project_results, reference_date, next_week_summary
+    )
 
     with open(sidecar_path, "w", encoding="utf-8") as f:
         json.dump(

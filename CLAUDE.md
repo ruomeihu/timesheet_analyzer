@@ -81,7 +81,8 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - PPT/PDF 下载文件名固定为 `工时分析周报_数据平台部_YYYYMMDD.pdf`(Streamlit Tab 6 下载按钮 + 邮件附件),日期取 `reference_date` / `ref_date`
 - `send_email(attachments=...)` 支持 `str` 或 `(path, display_name)` 元组;中文文件名走 RFC 2231 `filename*=utf-8''…` 头(已在 `auto_weekly_report.py:send_email` 内部封装)
 - 未立项 / 临时指派 工时口径统一在 `src/report_pipeline.py:UNALIGNED_KEYWORDS = ("未立项", "临时指派")`，改这里会同步影响 sidecar `weekStats.unalignedHours` 和钉钉推送内容
-- Sidecar `reports/report_YYYYMMDD.json` 的 `weekStats` 字段（weekNum / totalHours / projectCount / top3Projects / unalignedHours / unalignedPct）由 `src/report_pipeline.py:_compute_week_stats` 生成，是 `dingtalk_report_push.py` 的稳定契约，删字段会触发兜底分支
+- Sidecar `reports/report_YYYYMMDD.json` 的 `weekStats` 字段（weekNum / totalHours / projectCount / top3Projects / categories / unalignedHours / unalignedPct / nextWeek）由 `src/report_pipeline.py:_compute_week_stats` 生成，是 `dingtalk_report_push.py` 的稳定契约，删字段会触发兜底分支
+- `weekStats.categories` 是按 `项目属性` 的四分类（顺序固定 `战略项目 / 付费项目 / 售前项目 / 支持/运营项目`，见 `report_pipeline.py:CATEGORY_ORDER`），每类含 `hours` + `top1{name,hours}`；不属于这 4 类的项目计入 totalHours 但不进 categories（四类之和可能 < 总工时）。`weekStats.nextWeek` = 下周 `{totalHours, projectCount}`，来自 `next_week_summary`，缺失时为 null。`未立项/临时指派`(unalignedHours) 与 categories **不去重**——它当前归在「支持/运营项目」属性下，会被同时计入。钉钉推送 `categories`/`nextWeek` 缺失时回退到 Top3 段落、省略下周段（不触发 @胡若玫 兜底）
 
 ## Environment Variables
 

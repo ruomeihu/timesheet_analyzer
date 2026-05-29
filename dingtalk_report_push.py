@@ -58,22 +58,65 @@ def is_payload_valid(sidecar) -> bool:
     return all(k in week_stats for k in required)
 
 
+# 四类项目的展示标签（含 emoji），顺序与 report_pipeline.CATEGORY_ORDER 一致。
+CATEGORY_DISPLAY = {
+    "战略项目": "🎯 战略项目",
+    "付费项目": "💰 付费项目",
+    "售前项目": "🤝 售前项目",
+    "支持/运营项目": "🛠️ 支持/运营项目",
+}
+
+
+def render_categories(categories: list) -> str:
+    """把四类分类渲染成 Markdown 列表，0 工时的分类也保留。"""
+    lines = []
+    for c in categories:
+        label = CATEGORY_DISPLAY.get(c["attribute"], c["attribute"])
+        top1 = c.get("top1")
+        if c["hours"] > 0 and top1:
+            lines.append(
+                f"- {label} · **{c['hours']} 小时** ｜ Top：{top1['name']}（{top1['hours']}h）"
+            )
+        else:
+            lines.append(f"- {label} · **{c['hours']} 小时** ｜ 暂无")
+    return "\n".join(lines)
+
+
 def build_success_markdown(sidecar: dict, week_num: int) -> str:
     stats = sidecar["weekStats"]
     gamma_url = sidecar["gammaUrl"]
     total_hours = stats["totalHours"]
     project_count = stats["projectCount"]
-    top3 = stats["top3Projects"]
     unaligned_hours = stats["unalignedHours"]
     unaligned_pct = stats["unalignedPct"]
+    categories = stats.get("categories")
+    next_week = stats.get("nextWeek")
 
-    if top3:
-        top3_lines = "\n".join(
-            f"{i + 1}. {p['name']} · {p['hours']} 小时"
-            for i, p in enumerate(top3)
+    # 项目工时段：有新版 categories 字段走四分类，老 sidecar 回退到 Top3
+    if categories:
+        breakdown_section = (
+            "**📂 项目工时分类**（看资源去向，不是比谁忙）\n\n"
+            f"{render_categories(categories)}"
         )
     else:
-        top3_lines = "_本周暂无项目工时数据_"
+        top3 = stats.get("top3Projects") or []
+        if top3:
+            top3_lines = "\n".join(
+                f"{i + 1}. {p['name']} · {p['hours']} 小时"
+                for i, p in enumerate(top3)
+            )
+        else:
+            top3_lines = "_本周暂无项目工时数据_"
+        breakdown_section = "**项目工时 Top 3**（看资源去向，不是比谁忙）:\n" + top3_lines
+
+    # 下周工作计划：仅总工时 + 涉及项目数；老 sidecar 无该字段则整段省略
+    next_week_section = ""
+    if next_week:
+        next_week_section = (
+            "\n**🗓️ 下周工作计划**\n\n"
+            f"下周预估投入 **{next_week['totalHours']} 小时**，"
+            f"涉及 **{next_week['projectCount']}** 个项目。\n"
+        )
 
     return f"""## 📊 工时周报 · 第 {week_num} 周
 
@@ -85,15 +128,12 @@ def build_success_markdown(sidecar: dict, week_num: int) -> str:
 
 本周共投入 **{total_hours} 小时**, 涉及 **{project_count}** 个项目。
 
-**项目工时 Top 3** (看资源去向, 不是比谁忙):
-{top3_lines}
+{breakdown_section}
 
-**🔍 一个值得关注的信号**
+**📌 未立项 / 临时指派**
 
-本周"未立项/临时指派" 共 **{unaligned_hours} 小时**, 占总工时 **{unaligned_pct}%**。
-
-建议大家对照一下: 这里面有没有可以补立项的日常运营 / 售前工作? 临时事项是真的临时, 还是默认项?
-
+本周共 **{unaligned_hours} 小时**, 占总工时 **{unaligned_pct}%**。
+{next_week_section}
 **📈 完整周报 PPT**
 
 👉 [点这里在 Gamma 里看完整分析]({gamma_url})

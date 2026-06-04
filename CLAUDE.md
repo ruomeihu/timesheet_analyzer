@@ -61,7 +61,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 ### 配置 (`config/`)
 
-- `employees.yaml` — 员工列表（中英文名、类型、标准工时、入职日期、请假记录）+ 全局默认值（阈值、AI 模型配置）+ 项目分类关键词
+- `employees.yaml` — 员工列表（中英文名、类型、标准工时、入职日期 onboard_date、离职日期 offboard_date、请假记录）+ 全局默认值（阈值、AI 模型配置）+ 项目分类关键词
 - `holidays.yaml` — 中国法定节假日，type: `holiday`（放假）或 `workday`（调休上班）
 - `__init__.py` — `get_employees_config()` / `get_holidays_config()` 加载 YAML
 
@@ -73,6 +73,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 - 所有中文字段名与 Notion 数据库一致：`成员`、`日期`、`工时 h`、`MIH Projects 项目库`、`工作阶段`、`优先级`、`项目属性`
 - 员工中英文名映射在 `preprocessor.py` 的 `_standardize_member_names()` 中处理
+- 员工离职：在 `config/employees.yaml` 给该员工加 `offboard_date: "YYYY-MM-DD"`（离职生效日，含；与 `onboard_date` 对称）。`preprocessor.py:_filter_departed_members` 按 **ISO 报告周** 粒度整周剔除其工时（含离职前几天），离职生效周及之后全链路（分析/图表/AI/sidecar/钉钉）不出现，离职前历史周不受影响。⚠️ 分析是**数据驱动**的（按 DataFrame 里实际有数据的成员，非 yaml 名单）——仅从 Notion 删人但工时记录仍在时，本周报告仍会拉到他并可能误标「📉 偏低」，必须靠 offboard_date 剔除。测试：`python test_offboard_filter.py`
 - API Token 通过 Streamlit secrets (`st.secrets`) 或环境变量 (`os.getenv`) 读取，优先 secrets
 - `@st.cache_data` 用于缓存数据加载，Notion 直连 TTL=300 秒
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`

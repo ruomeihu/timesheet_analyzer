@@ -10,6 +10,7 @@
 # - position: 职位名称
 # - responsibilities: 岗位职责列表
 # - leaves: 请假记录（可选）
+# - offboard_date: 离职生效日（可选），该日所属 ISO 周及之后周报中完全不出现
 # ============================================
 
 # 部门信息
@@ -126,7 +127,8 @@ employees:
       - "数据标准化"
       - "数据模型"
       - "数据产品定义"
-    onboard_date: "2026-04-01"  # 入职日期
+    onboard_date: "2026-04-01"   # 入职日期
+    offboard_date: "2026-06-05"  # 离职生效日（含），该 ISO 周起不再出现
 
   - name_cn: "李倩"
     name_en: "qian li"

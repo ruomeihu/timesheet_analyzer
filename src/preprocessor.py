@@ -50,7 +50,10 @@ def preprocess_data(
     if reference_date is None:
         reference_date = date.today()
     df = _add_period_info(df, reference_date)
-    
+
+    # 4.5 剔除已离职成员（离职生效周及之后整周不出现）
+    df = _filter_departed_members(df, reference_date)
+
     # 5. 添加员工配置信息
     df = _add_employee_info(df)
     
@@ -153,6 +156,48 @@ def _add_period_info(df: pd.DataFrame, reference_date: date) -> pd.DataFrame:
     )
     
     return df
+
+
+def _filter_departed_members(df: pd.DataFrame, reference_date: date) -> pd.DataFrame:
+    """剔除已离职成员的全部工时行。
+
+    判定按「报告周」粒度而非按行日期：只要成员的 offboard_date 落在
+    reference_date 所属 ISO 周（含）或更早，就把该成员在本 DataFrame 里的
+    全部行剔除——即离职生效周及之后整周不出现（含其离职前几天的工时）。
+    离职生效周之前的周（如重生旧报告）不受影响。
+
+    offboard_date 语义 = 离职生效日（含），与 onboard_date（首个在职日，含）对称。
+    """
+    config = get_employees_config()
+
+    # name_cn -> offboard_date（仅取配置了该字段的员工）
+    offboard_map = {}
+    for emp in config.get('employees', []):
+        raw = emp.get('offboard_date')
+        if not raw:
+            continue
+        try:
+            offboard_map[emp.get('name_cn', '')] = (
+                datetime.strptime(str(raw), '%Y-%m-%d').date()
+            )
+        except (ValueError, TypeError):
+            continue  # 日期格式无效则忽略，不影响其他成员
+
+    if not offboard_map:
+        return df
+
+    # 报告周的周日（ISO 周一为首日）
+    week_monday = reference_date - timedelta(days=reference_date.weekday())
+    week_sunday = week_monday + timedelta(days=6)
+
+    departed = [
+        name for name, off_date in offboard_map.items()
+        if off_date <= week_sunday
+    ]
+    if not departed:
+        return df
+
+    return df[~df['成员_中文'].isin(departed)].copy()
 
 
 def _add_employee_info(df: pd.DataFrame) -> pd.DataFrame:

@@ -42,7 +42,10 @@ def preprocess_data(
     
     # 2. 成员名称标准化
     df = _standardize_member_names(df)
-    
+
+    # 2.5 剔除「未知/空」成员行（Notion 账号被删后名字丢失的离职成员等）
+    df = _filter_unidentified_members(df)
+
     # 3. 项目名称清理
     df = _clean_project_names(df)
     
@@ -91,6 +94,35 @@ def _standardize_member_names(df: pd.DataFrame) -> pd.DataFrame:
     df['成员_原始'] = df['成员']
     
     return df
+
+
+def _filter_unidentified_members(df: pd.DataFrame) -> pd.DataFrame:
+    """剔除「成员」无法识别的工时行，并打印告警。
+
+    「未知」/空成员只可能来自两种情况，均非合法的具名员工：
+      1. 员工离职后 Notion 账号被删除，其历史工时行的 person 字段变成
+         name=null（→「未知」）或 people 空数组（→ "" / CSV 往返后 NaN）；
+      2. Notion 里漏填成员。
+
+    ⚠️ 这是 offboard_date 名字匹配的兜底：账号删除恰好抹掉了过滤所依赖的
+    名字，按名字匹配的 _filter_departed_members 此时漏剔，会冒出一个幻影
+    「未知 / 按需」成员（计入工时、可能误标超负荷/偏低）。
+
+    未在 yaml 映射的真实人名会被 _standardize_member_names 原样透传（不会
+    变「未知」），因此整行丢弃对正常成员无副作用。
+    """
+    name = df['成员_中文']
+    bad_mask = name.isna() | name.astype(str).str.strip().isin(['', '未知'])
+
+    if bad_mask.any():
+        dropped = df[bad_mask]
+        hours = dropped['工时 h'].sum() if '工时 h' in dropped.columns else 0
+        print(
+            f"⚠️  剔除 {len(dropped)} 行无法识别成员的工时（合计 {hours:g}h）"
+            f"——通常是离职员工 Notion 账号已删除导致名字丢失，已从分析中排除。"
+        )
+
+    return df[~bad_mask].copy()
 
 
 def _clean_project_names(df: pd.DataFrame) -> pd.DataFrame:

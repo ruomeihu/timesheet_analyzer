@@ -671,17 +671,41 @@ with st.sidebar:
         config = get_employees_config()
         employees = config.get('employees', [])
 
+        def _is_departed(emp: dict) -> bool:
+            """offboard_date 已到（含今天）即视为离职。"""
+            raw = emp.get('offboard_date')
+            if not raw:
+                return False
+            try:
+                return datetime.strptime(str(raw), '%Y-%m-%d').date() <= date.today()
+            except (ValueError, TypeError):
+                return False
+
         emp_df = pd.DataFrame([
             {
                 '姓名': e.get('name_cn', ''),
                 '英文名': e.get('name_en', ''),
-                '类型': e.get('type', ''),
+                '类型': '离职' if _is_departed(e) else e.get('type', ''),
                 '职位': e.get('position', e.get('description', '')),
-                '标准工时': e.get('standard_hours', 'N/A')
+                '标准工时': e.get('standard_hours', 'N/A'),
+                '_departed': _is_departed(e),
             }
             for e in employees
         ])
-        st.dataframe(emp_df, use_container_width=True, hide_index=True)
+        # 离职成员排到末尾（稳定排序保持在职原顺序）
+        emp_df = emp_df.sort_values('_departed', kind='stable').reset_index(drop=True)
+        departed_rows = emp_df.index[emp_df['_departed']].tolist()
+        emp_df = emp_df.drop(columns='_departed')
+
+        def _gray_departed(row):
+            """离职行整行置灰。"""
+            return ['color: #9ca3af'] * len(row) if row.name in departed_rows else [''] * len(row)
+
+        st.dataframe(
+            emp_df.style.apply(_gray_departed, axis=1),
+            use_container_width=True,
+            hide_index=True,
+        )
         st.caption("💡 修改员工配置请编辑 `config/employees.yaml`")
 
     # ── 开始分析按钮 ──

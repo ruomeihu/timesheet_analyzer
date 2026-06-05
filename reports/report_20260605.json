@@ -1,0 +1,249 @@
+{
+  "gammaUrl": "https://gamma.app/docs/0dk665t37bctspa",
+  "exportUrl": "https://assets.api.gamma.app/export/pdf/0dk665t37bctspa/626eecb06c34838a820d2d30c37d4569/0dk665t37bctspa.pdf",
+  "generationId": "ROmLs4lZ9DaCzXnsznZqG",
+  "generatedAt": "2026-06-05T06:38:05",
+  "source": "ci",
+  "weekStats": {
+    "weekNum": 23,
+    "totalHours": 309.0,
+    "projectCount": 18,
+    "top3Projects": [
+      {
+        "name": "数据中台建设项目",
+        "hours": 77.0
+      },
+      {
+        "name": "美年健康血液学生理学年龄评估",
+        "hours": 56.0
+      },
+      {
+        "name": "中再保险-全癌种数据合作",
+        "hours": 34.0
+      }
+    ],
+    "categories": [
+      {
+        "attribute": "战略项目",
+        "hours": 133.0,
+        "top1": {
+          "name": "数据中台建设项目",
+          "hours": 77.0
+        }
+      },
+      {
+        "attribute": "付费项目",
+        "hours": 39.5,
+        "top1": {
+          "name": "2025年度健康体检大数据蓝皮书（美年+慈铭）",
+          "hours": 14.0
+        }
+      },
+      {
+        "attribute": "售前项目",
+        "hours": 55.0,
+        "top1": {
+          "name": "中再保险-全癌种数据合作",
+          "hours": 34.0
+        }
+      },
+      {
+        "attribute": "支持/运营项目",
+        "hours": 81.5,
+        "top1": {
+          "name": "团队管理与数据运营",
+          "hours": 29.0
+        }
+      }
+    ],
+    "unalignedHours": 13.5,
+    "unalignedPct": 4.4,
+    "nextWeek": {
+      "totalHours": 102.0,
+      "projectCount": 11
+    }
+  },
+  "aiInsights": {
+    "dimensions": [
+      {
+        "dimension": "战略一致性",
+        "indicators": [
+          {
+            "name": "战略 vs 琐事比例",
+            "value": "战略项目 43%, 支持运营项目 32%, 售前项目 25%",
+            "assessment": "良好",
+            "finding": "战略项目（数据中台77h + 美年血液学56h）占比43%，符合技术团队定位。但支持运营项目占比32%偏高，主要集中在团队管理29h和院长助理工作19.5h",
+            "severity": "low"
+          },
+          {
+            "name": "重点项目投入度",
+            "value": "TOP3项目共167h，占总工时54%",
+            "assessment": "充足",
+            "finding": "数据中台建设77h（24.9%）、美年血液学56h（18.1%）、中再保险34h（11%）三个重点项目获得充足资源投入，符合战略优先级",
+            "severity": "low"
+          }
+        ],
+        "summary": "战略项目投入比例合理，重点项目资源充足，但运营支持类工作占比偏高",
+        "severity": "low"
+      },
+      {
+        "dimension": "执行效率与模式",
+        "indicators": [
+          {
+            "name": "碎片化程度",
+            "value": "魏超日均3.5个项目，李倩日均4.4个项目",
+            "assessment": "偏高",
+            "finding": "魏超和李倩工作碎片化严重，魏超涉及11个项目，平均任务时长仅1.5h。技术人员（张治宇、王晓书）碎片化程度较低，专注度较好",
+            "severity": "medium"
+          },
+          {
+            "name": "会议/协作占比",
+            "value": "团队管理与协作29h，占9.4%",
+            "assessment": "合理",
+            "finding": "会议协作时间控制在合理范围内，主要包括周例会、战略研讨等必要沟通",
+            "severity": "low"
+          },
+          {
+            "name": "预估 vs 实际偏差",
+            "value": "无预估数据",
+            "assessment": "无法评估",
+            "finding": "缺乏项目工时预估数据，无法进行偏差分析",
+            "severity": "low"
+          }
+        ],
+        "summary": "技术人员专注度良好，但管理岗位碎片化严重，影响深度工作效率",
+        "severity": "medium"
+      },
+      {
+        "dimension": "团队健康与风险",
+        "indicators": [
+          {
+            "name": "隐性加班与负荷分布",
+            "value": "王晓书89.5h（223.7%），其他成员正常",
+            "assessment": "高风险",
+            "finding": "王晓书严重超负荷，单周89.5小时，存在明显的单点依赖风险。其他成员工时分布相对均衡",
+            "severity": "high"
+          },
+          {
+            "name": "异常空白或通用填充",
+            "value": "未立项/临时指派13.5h（4.4%）",
+            "assessment": "正常",
+            "finding": "临时性工作占比控制在合理范围内，主要为业务拓展和临时支持工作",
+            "severity": "low"
+          }
+        ],
+        "summary": "存在严重的人员超负荷和单点依赖风险，需要立即调整",
+        "severity": "high"
+      },
+      {
+        "dimension": "财务与合规",
+        "indicators": [
+          {
+            "name": "资本化工时占比",
+            "value": "战略项目133h，约占43%",
+            "assessment": "良好",
+            "finding": "数据中台等基础设施建设项目具备资本化潜力，投入比例合理",
+            "severity": "low"
+          },
+          {
+            "name": "跨部门支持成本",
+            "value": "支持运营项目99h，占32%",
+            "assessment": "偏高",
+            "finding": "跨部门支持和内部运营工作占比较高，包括院长助理工作、团队管理等，影响核心业务产出",
+            "severity": "medium"
+          }
+        ],
+        "summary": "资本化项目投入合理，但内部支持成本偏高，需要优化资源配置",
+        "severity": "medium"
+      }
+    ],
+    "quick_scan": {
+      "anomalies": [
+        {
+          "type": "工时异常",
+          "member": "王晓书",
+          "value": "89.5h (223.7%)",
+          "concern": "严重超负荷，存在健康和质量风险"
+        },
+        {
+          "type": "工时异常",
+          "member": "未知",
+          "value": "32h按需人员",
+          "concern": "身份不明确，管理风险"
+        }
+      ],
+      "core_projects": [
+        {
+          "project": "数据中台建设",
+          "hours": 77,
+          "status": "充足",
+          "comment": "3人投入，技术开发进展良好"
+        },
+        {
+          "project": "美年血液学评估",
+          "hours": 56,
+          "status": "充足",
+          "comment": "跨角色协作，研发和研究并进"
+        },
+        {
+          "project": "中再保险合作",
+          "hours": 34,
+          "status": "充足",
+          "comment": "售前阶段投入合理"
+        }
+      ],
+      "black_holes": [
+        {
+          "category": "团队管理",
+          "hours": 29,
+          "percentage": "9.4%",
+          "risk": "管理成本偏高"
+        },
+        {
+          "category": "院长助理工作",
+          "hours": 19.5,
+          "percentage": "6.3%",
+          "risk": "非核心业务占用资源"
+        }
+      ],
+      "action_items": [
+        "立即调整王晓书工作负荷，分担部分任务给其他技术人员",
+        "明确'未知'人员身份和管理归属",
+        "评估院长助理工作的必要性和效率"
+      ]
+    },
+    "executive_summary": "本周团队总工时309小时，战略项目投入占比43%，表现良好。但存在王晓书严重超负荷（223.7%达成率）和工作分配不均问题。数据中台建设和美年血液学项目作为核心战略项目获得充足投入，但团队管理和行政事务占比偏高（15.7%），影响核心业务专注度。建议立即调整王晓书工作负荷并优化团队资源配置。",
+    "recommendations": [
+      {
+        "priority": "high",
+        "category": "健康",
+        "title": "紧急调整王晓书工作负荷",
+        "description": "王晓书单周89.5小时严重超标，建议立即将部分数据中台和中再保险项目工作分配给张治宇或外部资源，确保工作负荷回归正常范围",
+        "expected_impact": "降低人员流失风险，提高工作质量，避免项目延期"
+      },
+      {
+        "priority": "high",
+        "category": "效率",
+        "title": "优化管理岗位工作模式",
+        "description": "魏超日均切换3.5个项目，建议设立固定的项目管理时间块，减少任务切换频率，提高管理效率",
+        "expected_impact": "提升项目管理质量，减少沟通成本"
+      },
+      {
+        "priority": "medium",
+        "category": "战略",
+        "title": "重新评估支持性工作优先级",
+        "description": "团队管理和院长助理工作占用较多资源（48.5h），建议评估这些工作的必要性和效率，将更多资源投入核心技术项目",
+        "expected_impact": "提高战略项目产出，加快技术能力建设"
+      },
+      {
+        "priority": "medium",
+        "category": "财务",
+        "title": "建立工时预估和跟踪机制",
+        "description": "当前缺乏项目工时预估，建议建立标准的工时预估流程，定期跟踪实际vs预估偏差，提高项目管理精度",
+        "expected_impact": "提升项目交付可预测性，优化资源配置"
+      }
+    ],
+    "raw_response": "```json\n{\n  \"executive_summary\": \"本周团队总工时309小时，战略项目投入占比43%，表现良好。但存在王晓书严重超负荷（223.7%达成率）和工作分配不均问题。数据中台建设和美年血液学项目作为核心战略项目获得充足投入，但团队管理和行政事务占比偏高（15.7%），影响核心业务专注度。建议立即调整王晓书工作负荷并优化团队资源配置。\",\n  \"dimensions\": [\n    {\n      \"dimension\": \"战略一致性\",\n      \"indicators\": [\n        {\n          \"name\": \"战略 vs 琐事比例\",\n          \"value\": \"战略项目 43%, 支持运营项目 32%, 售前项目 25%\",\n          \"assessment\": \"良好\",\n          \"finding\": \"战略项目（数据中台77h + 美年血液学56h）占比43%，符合技术团队定位。但支持运营项目占比32%偏高，主要集中在团队管理29h和院长助理工作19.5h\",\n          \"severity\": \"low\"\n        },\n        {\n          \"name\": \"重点项目投入度\",\n          \"value\": \"TOP3项目共167h，占总工时54%\",\n          \"assessment\": \"充足\",\n          \"finding\": \"数据中台建设77h（24.9%）、美年血液学56h（18.1%）、中再保险34h（11%）三个重点项目获得充足资源投入，符合战略优先级\",\n          \"severity\": \"low\"\n        }\n      ],\n      \"summary\": \"战略项目投入比例合理，重点项目资源充足，但运营支持类工作占比偏高\",\n      \"severity\": \"low\"\n    },\n    {\n      \"dimension\": \"执行效率与模式\",\n      \"indicators\": [\n        {\n          \"name\": \"碎片化程度\",\n          \"value\": \"魏超日均3.5个项目，李倩日均4.4个项目\",\n          \"assessment\": \"偏高\",\n          \"finding\": \"魏超和李倩工作碎片化严重，魏超涉及11个项目，平均任务时长仅1.5h。技术人员（张治宇、王晓书）碎片化程度较低，专注度较好\",\n          \"severity\": \"medium\"\n        },\n        {\n          \"name\": \"会议/协作占比\",\n          \"value\": \"团队管理与协作29h，占9.4%\",\n          \"assessment\": \"合理\",\n          \"finding\": \"会议协作时间控制在合理范围内，主要包括周例会、战略研讨等必要沟通\",\n          \"severity\": \"low\"\n        },\n        {\n          \"name\": \"预估 vs 实际偏差\",\n          \"value\": \"无预估数据\",\n          \"assessment\": \"无法评估\",\n          \"finding\": \"缺乏项目工时预估数据，无法进行偏差分析\",\n          \"severity\": \"low\"\n        }\n      ],\n      \"summary\": \"技术人员专注度良好，但管理岗位碎片化严重，影响深度工作效率\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"dimension\": \"团队健康与风险\",\n      \"indicators\": [\n        {\n          \"name\": \"隐性加班与负荷分布\",\n          \"value\": \"王晓书89.5h（223.7%），其他成员正常\",\n          \"assessment\": \"高风险\",\n          \"finding\": \"王晓书严重超负荷，单周89.5小时，存在明显的单点依赖风险。其他成员工时分布相对均衡\",\n          \"severity\": \"high\"\n        },\n        {\n          \"name\": \"异常空白或通用填充\",\n          \"value\": \"未立项/临时指派13.5h（4.4%）\",\n          \"assessment\": \"正常\",\n          \"finding\": \"临时性工作占比控制在合理范围内，主要为业务拓展和临时支持工作\",\n          \"severity\": \"low\"\n        }\n      ],\n      \"summary\": \"存在严重的人员超负荷和单点依赖风险，需要立即调整\",\n      \"severity\": \"high\"\n    },\n    {\n      \"dimension\": \"财务与合规\",\n      \"indicators\": [\n        {\n          \"name\": \"资本化工时占比\",\n          \"value\": \"战略项目133h，约占43%\",\n          \"assessment\": \"良好\",\n          \"finding\": \"数据中台等基础设施建设项目具备资本化潜力，投入比例合理\",\n          \"severity\": \"low\"\n        },\n        {\n          \"name\": \"跨部门支持成本\",\n          \"value\": \"支持运营项目99h，占32%\",\n          \"assessment\": \"偏高\",\n          \"finding\": \"跨部门支持和内部运营工作占比较高，包括院长助理工作、团队管理等，影响核心业务产出\",\n          \"severity\": \"medium\"\n        }\n      ],\n      \"summary\": \"资本化项目投入合理，但内部支持成本偏高，需要优化资源配置\",\n      \"severity\": \"medium\"\n    }\n  ],\n  \"quick_scan\": {\n    \"anomalies\": [\n      {\"type\": \"工时异常\", \"member\": \"王晓书\", \"value\": \"89.5h (223.7%)\", \"concern\": \"严重超负荷，存在健康和质量风险\"},\n      {\"type\": \"工时异常\", \"member\": \"未知\", \"value\": \"32h按需人员\", \"concern\": \"身份不明确，管理风险\"}\n    ],\n    \"core_projects\": [\n      {\"project\": \"数据中台建设\", \"hours\": 77, \"status\": \"充足\", \"comment\": \"3人投入，技术开发进展良好\"},\n      {\"project\": \"美年血液学评估\", \"hours\": 56, \"status\": \"充足\", \"comment\": \"跨角色协作，研发和研究并进\"},\n      {\"project\": \"中再保险合作\", \"hours\": 34, \"status\": \"充足\", \"comment\": \"售前阶段投入合理\"}\n    ],\n    \"black_holes\": [\n      {\"category\": \"团队管理\", \"hours\": 29, \"percentage\": \"9.4%\", \"risk\": \"管理成本偏高\"},\n      {\"category\": \"院长助理工作\", \"hours\": 19.5, \"percentage\": \"6.3%\", \"risk\": \"非核心业务占用资源\"}\n    ],\n    \"action_items\": [\n      \"立即调整王晓书工作负荷，分担部分任务给其他技术人员\",\n      \"明确'未知'人员身份和管理归属\",\n      \"评估院长助理工作的必要性和效率\"\n    ]\n  },\n  \"recommendations\": [\n    {\n      \"priority\": \"high\",\n      \"category\": \"健康\",\n      \"title\": \"紧急调整王晓书工作负荷\",\n      \"description\": \"王晓书单周89.5小时严重超标，建议立即将部分数据中台和中再保险项目工作分配给张治宇或外部资源，确保工作负荷回归正常范围\",\n      \"expected_impact\": \"降低人员流失风险，提高工作质量，避免项目延期\"\n    },\n    {\n      \"priority\": \"high\",\n      \"category\": \"效率\",\n      \"title\": \"优化管理岗位工作模式\",\n      \"description\": \"魏超日均切换3.5个项目，建议设立固定的项目管理时间块，减少任务切换频率，提高管理效率\",\n      \"expected_impact\": \"提升项目管理质量，减少沟通成本\"\n    },\n    {\n      \"priority\": \"medium\",\n      \"category\": \"战略\",\n      \"title\": \"重新评估支持性工作优先级\",\n      \"description\": \"团队管理和院长助理工作占用较多资源（48.5h），建议评估这些工作的必要性和效率，将更多资源投入核心技术项目\",\n      \"expected_impact\": \"提高战略项目产出，加快技术能力建设\"\n    },\n    {\n      \"priority\": \"medium\",\n      \"category\": \"财务\",\n      \"title\": \"建立工时预估和跟踪机制\",\n      \"description\": \"当前缺乏项目工时预估，建议建立标准的工时预估流程，定期跟踪实际vs预估偏差，提高项目管理精度\",\n      \"expected_impact\": \"提升项目交付可预测性，优化资源配置\"\n    }\n  ]\n}\n```"
+  },
+  "aiInsightsGeneratedAt": "2026-06-05T06:38:05"
+}

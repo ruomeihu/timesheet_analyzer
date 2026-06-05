@@ -23,6 +23,13 @@ from src.preprocessor import preprocess_data, filter_by_period
 from src.analyzer import TimesheetAnalyzer
 from src.visualizer import create_visualizations, create_single_chart
 from src.report_generator import generate_markdown_report
+from src.progress_analyzer import (
+    load_recent_weeks,
+    project_progress,
+    summarize,
+    review_candidates,
+    momentum_arrow,
+)
 from config import get_employees_config, add_employee_leave
 
 # ============================================
@@ -916,14 +923,15 @@ if current_summary['date_range']:
 st.divider()
 
 # 标签页
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "👥 人员分析",
     "📁 项目分析",
     "📊 图表中心",
     "📅 下周安排",
     "🤖 AI 深度分析",
     "📄 报告下载",
-    "🏖️ 请假登记"
+    "🏖️ 请假登记",
+    "📈 项目进度"
 ])
 
 # ============================================
@@ -1833,6 +1841,93 @@ with tab7:
             st.dataframe(leaves_df, use_container_width=True, hide_index=True)
         else:
             st.info(f"📭 {view_name} 暂无请假记录。")
+
+# ============================================
+# Tab 8: 项目进度（动量 + 停滞）
+# ============================================
+with tab8:
+    st.subheader("📈 项目进度概览")
+    st.caption("按项目看本周 vs 上周工时动量与停滞，帮你每周花 20 分钟和下属过一遍进度。")
+
+    _prog_df = load_recent_weeks("reports", n_weeks=4, reference_date=reference_date)
+    if len(_prog_df) == 0:
+        st.info("📭 reports/ 下没有可用的历史存档 CSV，暂无法计算项目进度。")
+    else:
+        _weeks_present = sorted(_prog_df["ISO周"].unique())
+        progress = project_progress(_prog_df, reference_date, n_weeks=4)
+        if not progress:
+            st.info("📭 窗口内暂无项目工时数据。")
+        else:
+            st.caption(
+                f"数据截至最近一次周报存档；窗口含 {len(_weeks_present)} 个 ISO 周"
+                f"（本周 = 第 {reference_date.isocalendar()[1]} 周）。动量看本周 vs 上周工时。"
+            )
+            if len(_weeks_present) < 2:
+                st.warning("⚠️ 历史不足 2 周，动量（本周 vs 上周）无法计算，仅展示本周投入。")
+
+            # 顶部一行摘要
+            _s = summarize(progress)
+            _c1, _c2, _c3, _c4, _c5 = st.columns(5)
+            _c1.metric("活跃项目", _s["active"])
+            _c2.metric("📈 升温", _s["up"])
+            _c3.metric("📉 降温", _s["down"])
+            _c4.metric("🛑 停滞", _s["stalled"])
+            _c5.metric("🆕 新启动", _s["new"])
+
+            # 建议本周和下属过一遍的项目
+            _cands = review_candidates(progress)
+            if _cands:
+                st.markdown("#### ⭐ 本周建议和下属过一遍")
+                for _p in _cands[:8]:
+                    if _p.stalled:
+                        _last_who = "、".join(n for n, _ in _p.prior_contributors[:2]) or "—"
+                        st.markdown(
+                            f"- 🛑 **{_p.name}**（{_p.priority}优先）— 已停滞 **{_p.weeks_since_active} 周**"
+                            f"，最后活跃 {_p.last_active_date}（{_last_who}）。可以问：还在推进吗？卡在哪？"
+                        )
+                    else:
+                        st.markdown(
+                            f"- 📉 **{_p.name}**（{_p.priority}优先）— 工时 {_p.last_week_hours}h → "
+                            f"**{_p.this_week_hours}h**（降温）。可以问：是正常收尾，还是遇到了阻碍？"
+                        )
+                st.caption("只列了停滞/降温里优先级高、中的——这是讨论的起点，不是结论，具体原因要问人。")
+
+            st.divider()
+
+            # 全部项目表（按需关注度排序）
+            st.markdown("#### 全部项目（排序：停滞 → 降温 → 其余）")
+            _rows = []
+            for _p in progress:
+                _who = "、".join(f"{n} {h}h" for n, h in (_p.contributors or _p.prior_contributors)[:3])
+                _status = f"🛑 停滞{_p.weeks_since_active}周" if _p.stalled else momentum_arrow(_p.momentum)
+                _rows.append({
+                    "项目": _p.name,
+                    "优先级": _p.priority,
+                    "属性": _p.attribute,
+                    "本周(h)": _p.this_week_hours,
+                    "上周(h)": _p.last_week_hours,
+                    "状态": _status,
+                    "当前阶段": _p.current_stage,
+                    "投入人": _who,
+                })
+            st.dataframe(pd.DataFrame(_rows), use_container_width=True, hide_index=True)
+
+            # 近几周工时趋势（Top 8 项目）
+            st.markdown("#### 近几周工时趋势（Top 8 项目）")
+            _top = sorted(progress, key=lambda p: sum(h for _, h in p.weekly_series), reverse=True)[:8]
+            _trend_rows = []
+            for _p in _top:
+                for _wk, _h in _p.weekly_series:
+                    _trend_rows.append({"项目": _p.name[:16], "周": _wk, "工时": _h})
+            if _trend_rows:
+                _trend_df = pd.DataFrame(_trend_rows)
+                _chart = alt.Chart(_trend_df).mark_line(point=True).encode(
+                    x=alt.X("周:N", title=None),
+                    y=alt.Y("工时:Q", title="工时 (h)"),
+                    color=alt.Color("项目:N", title="项目"),
+                    tooltip=["项目", "周", "工时"],
+                ).properties(height=320)
+                st.altair_chart(_chart, use_container_width=True)
 
 # ============================================
 # 页脚

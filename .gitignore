@@ -26,3 +26,6 @@ output/
 # 数据文件
 data/
 .claude/settings.local.json
+
+# 私密人事分析（含个人评价，绝不提交）
+private/

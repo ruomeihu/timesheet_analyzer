@@ -74,6 +74,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - 所有中文字段名与 Notion 数据库一致：`成员`、`日期`、`工时 h`、`MIH Projects 项目库`、`工作阶段`、`优先级`、`项目属性`
 - 员工中英文名映射在 `preprocessor.py` 的 `_standardize_member_names()` 中处理
 - 员工离职：在 `config/employees.yaml` 给该员工加 `offboard_date: "YYYY-MM-DD"`（离职生效日，含；与 `onboard_date` 对称）。`preprocessor.py:_filter_departed_members` 按 **ISO 报告周** 粒度整周剔除其工时（含离职前几天），离职生效周及之后全链路（分析/图表/AI/sidecar/钉钉）不出现，离职前历史周不受影响。⚠️ 分析是**数据驱动**的（按 DataFrame 里实际有数据的成员，非 yaml 名单）——仅从 Notion 删人但工时记录仍在时，本周报告仍会拉到他并可能误标「📉 偏低」，必须靠 offboard_date 剔除。测试：`python test_offboard_filter.py`
+- ⚠️ offboard 是**按名字匹配**剔除的，但离职后**删除 Notion 账号**会抹掉工时行的成员名（person `name=null`→「未知」，或 people 空数组→`""`/CSV 往返后 NaN→「未知」），此时名字匹配漏剔，会冒出幻影「未知/按需」成员。兜底在 `preprocessor.py:_filter_unidentified_members`（step 2.5，姓名标准化后）：丢弃 `成员_中文` 为 未知/空/NaN 的行并打印告警。语义安全——未映射的真实人名会原样透传，绝不会变「未知」。测试：`python test_unidentified_filter.py`
 - API Token 通过 Streamlit secrets (`st.secrets`) 或环境变量 (`os.getenv`) 读取，优先 secrets
 - `@st.cache_data` 用于缓存数据加载，Notion 直连 TTL=300 秒
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`

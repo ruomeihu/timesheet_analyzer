@@ -16,7 +16,10 @@ streamlit run app.py
 python main.py --input data/timesheet.csv --output output/ --date 2026-02-18
 
 # 自动化周报（从 Notion 拉取 + 生成报告）
-python auto_weekly_report.py
+# ⚠️ 默认输出到 ~/Documents/MIH_Reports；本地重生供前端/仓库用必须加 --output-dir ./reports
+# ⚠️ 邮件仅当显式传 --email 才发（不带地址=默认收件人），手动重生默认静默
+python auto_weekly_report.py --output-dir ./reports           # 本地重生(不发邮件)
+python auto_weekly_report.py --output-dir ./reports --email    # 同时发邮件
 python auto_weekly_report.py --week-offset -1 --output-dir ./reports
 
 # 钉钉推送本地手测（需先 export DINGTALK_WEBHOOK / DINGTALK_SECRET）
@@ -39,7 +42,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 - `app.py` — Streamlit Web 前端（6 个 tab），支持三种数据源：预生成报告 / Notion 直连 / CSV 上传
 - `main.py` — 命令行入口，读 CSV 输出报告+图表
-- `auto_weekly_report.py` — 定时任务入口，从 Notion 拉数据 → 分析 → 可选邮件/webhook 通知。GitHub Actions 每周五北京时间 13:00 自动运行
+- `auto_weekly_report.py` — 定时任务入口，从 Notion 拉数据 → 分析 → 可选邮件通知。邮件 **opt-in**（`CONFIG.email.enabled` 默认 False，仅 `--email` 时发；CI `weekly_report.yml` 已显式传 `--email`）。默认输出目录是 `~/Documents/MIH_Reports`，CI/本地重生靠 `--output-dir ./reports`。GitHub Actions 每周五北京时间 13:00 自动运行
 - `dingtalk_reminder.py` — 周五 9:00 钉钉群提醒填工时，无数据依赖。Workflow: `.github/workflows/dingtalk_reminder.yml`
 - `dingtalk_report_push.py` — 周五 14:00 钉钉群推送本周工时分析周报，读 `reports/report_YYYYMMDD.json` sidecar 的 `weekStats` + `gammaUrl`。sidecar 缺失/字段不全 → 走兜底分支并 @胡若玫。Workflow: `.github/workflows/dingtalk_report_push.yml`
 
@@ -75,6 +78,8 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - 员工中英文名映射在 `preprocessor.py` 的 `_standardize_member_names()` 中处理
 - 员工离职：在 `config/employees.yaml` 给该员工加 `offboard_date: "YYYY-MM-DD"`（离职生效日，含；与 `onboard_date` 对称）。`preprocessor.py:_filter_departed_members` 按 **ISO 报告周** 粒度整周剔除其工时（含离职前几天），离职生效周及之后全链路（分析/图表/AI/sidecar/钉钉）不出现，离职前历史周不受影响。⚠️ 分析是**数据驱动**的（按 DataFrame 里实际有数据的成员，非 yaml 名单）——仅从 Notion 删人但工时记录仍在时，本周报告仍会拉到他并可能误标「📉 偏低」，必须靠 offboard_date 剔除。测试：`python test_offboard_filter.py`
 - ⚠️ offboard 是**按名字匹配**剔除的，但离职后**删除 Notion 账号**会抹掉工时行的成员名（person `name=null`→「未知」，或 people 空数组→`""`/CSV 往返后 NaN→「未知」），此时名字匹配漏剔，会冒出幻影「未知/按需」成员。兜底在 `preprocessor.py:_filter_unidentified_members`（step 2.5，姓名标准化后）：丢弃 `成员_中文` 为 未知/空/NaN 的行并打印告警。语义安全——未映射的真实人名会原样透传，绝不会变「未知」。测试：`python test_unidentified_filter.py`
+- Streamlit「预生成报告」模式是**实时从 CSV 重算**（`app.py:803-806` `preprocess_data`+`TimesheetAnalyzer`），不读 md/json。改预处理/分析逻辑后**前端重启即生效**；但 md/sidecar/PDF/Gamma 是静态产物，需 `auto_weekly_report.py` 重生才更新。前端表里若仍有旧数据，先分清看的是实时重算（重启 app）还是静态产物（重生）
+- 侧边栏「员工配置预览」(`app.py:670`)：`offboard_date <= 今天` 的员工类型显示为「离职」、整行置灰、稳定排序到表末（在职原顺序不变）。判定独立于报告周，用 `date.today()`
 - API Token 通过 Streamlit secrets (`st.secrets`) 或环境变量 (`os.getenv`) 读取，优先 secrets
 - `@st.cache_data` 用于缓存数据加载，Notion 直连 TTL=300 秒
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`

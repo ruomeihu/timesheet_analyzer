@@ -27,7 +27,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MAIL_SENDER: ${{ secrets.MAIL_SENDER }}
           GAMMA_API_KEY: ${{ secrets.GAMMA_API_KEY }}
-        run: python auto_weekly_report.py --output-dir ./reports
+        # --email（不带地址）显式启用邮件，用默认收件人；手动重生不传则静默
+        run: python auto_weekly_report.py --output-dir ./reports --email
 
       - name: Commit reports
         run: |

@@ -44,8 +44,10 @@ CONFIG = {
     "output_dir": os.path.expanduser("~/Documents/MIH_Reports"),
     
     # 邮件配置（126 邮箱 SSL）
+    # enabled 默认 False：仅当命令行显式传 --email 时才发邮件（手动重生不会误发）。
+    # CI 定时任务在 weekly_report.yml 里显式传 --email 以保持周报推送。
     "email": {
-        "enabled": True,
+        "enabled": False,
         "smtp_server": "smtp.126.com",
         "smtp_port": 465,
         "sender_email": "mayhu1024@126.com",
@@ -408,10 +410,12 @@ def main():
 
     print(message)
 
-    # 邮件
-    if args.email:
+    # 邮件：仅当显式传 --email 才发（args.email is None 表示未传该参数）。
+    # --email 后跟地址 → 覆盖收件人；--email 单独出现（空列表）→ 用默认收件人。
+    if args.email is not None:
         CONFIG["email"]["enabled"] = True
-        CONFIG["email"]["recipient_emails"] = args.email
+        if args.email:
+            CONFIG["email"]["recipient_emails"] = args.email
 
     if CONFIG["email"]["enabled"]:
         attachments = [result["report_path"], result["chart_path"]]

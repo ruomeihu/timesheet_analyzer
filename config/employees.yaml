@@ -103,6 +103,10 @@ employees:
       - "数据技术"
     onboard_date: "2026-02-02"  # 入职日期
 
+    leaves:
+      - start: "2026-06-13"
+        end: "2026-06-13"
+        type: "年假"
   - name_cn: "王晓书"
     name_en: "xiaoshu"
     type: "全职"

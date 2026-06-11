@@ -78,11 +78,6 @@ employees:
     #     end: "2025-10-07"
     #     type: "年假"
 
-    leaves:
-      - start: "2026-06-12"
-        end: "2026-06-12"
-        type: "调休"
-        note: "e2e 验证测试，随即还原"
   - name_cn: "魏超"
     name_en: "Weichao"
     type: "全职"

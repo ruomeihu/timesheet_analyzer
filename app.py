@@ -31,6 +31,7 @@ from src.progress_analyzer import (
     momentum_arrow,
 )
 from config import get_employees_config, add_employee_leave
+from src.github_sync import push_leave_to_github, GitHubSyncError
 
 # ============================================
 # Altair 主题（MIH 品牌规范 · 数据可视化色板）
@@ -571,6 +572,178 @@ if 'loaded_meta' not in st.session_state:
     st.session_state.loaded_meta = None
 if 'analysis_params' not in st.session_state:
     st.session_state.analysis_params = {}
+if 'app_mode' not in st.session_state:
+    st.session_state.app_mode = 'welcome'  # 'welcome' | 'leave' | 'analysis'
+
+# ============================================
+# 请假登记（独立于分析流程，免加载数据）
+# ============================================
+HERO_HTML = '''
+<div class="hero-section">
+    <div class="main-eyebrow">美年健康研究院 · MIH</div>
+    <h1 class="main-header">团队工时分析系统</h1>
+    <p class="main-subtitle">追踪工时数据 · 解析工作负荷 · 洞察项目投入</p>
+</div>
+'''
+
+
+def _get_github_token() -> str:
+    """GITHUB_TOKEN：Streamlit secrets 优先，环境变量兜底。"""
+    try:
+        token = st.secrets.get("GITHUB_TOKEN", "") if hasattr(st, 'secrets') else ""
+    except Exception:
+        token = ""
+    if not token:
+        token = os.getenv("GITHUB_TOKEN", "")
+    return token
+
+
+def render_leave_form(default_date: date, key_prefix: str) -> None:
+    """请假登记表单 + 已有记录查看。独立请假页与分析模式 Tab 7 复用。
+
+    提交成功后 GitHub 同步（有 token 时）→ 本地写兜底 → st.rerun()
+    让已加载的分析即时按新请假重算达成率。
+    """
+    # 上一次提交的结果提示（提交后 rerun 会吞掉直接渲染的消息，故经 session_state 中转）
+    flash = st.session_state.pop('leave_flash', None)
+    if flash:
+        level, msg = flash
+        getattr(st, level)(msg)
+
+    employees_cfg = get_employees_config()
+    employee_options = [emp.get('name_cn') for emp in employees_cfg.get('employees', []) if emp.get('name_cn')]
+
+    if not employee_options:
+        st.warning("未在 employees.yaml 中找到任何员工。")
+        return
+
+    with st.form(f"{key_prefix}_leave_form", clear_on_submit=False):
+        fc1, fc2 = st.columns(2)
+        with fc1:
+            selected_name = st.selectbox("员工姓名", employee_options)
+            leave_type = st.selectbox("请假类型", ["年假", "病假", "事假", "调休"])
+        with fc2:
+            leave_start = st.date_input("请假开始日期", value=default_date)
+            leave_end = st.date_input("请假结束日期", value=default_date)
+
+        note_text = st.text_area("备注（可选）", placeholder="例如：陪家人就医", height=80)
+        submitted = st.form_submit_button("✅ 提交请假登记", use_container_width=True)
+
+        if submitted:
+            if leave_end < leave_start:
+                st.error("❌ 请假结束日期不能早于开始日期。")
+            else:
+                start_s = leave_start.strftime('%Y-%m-%d')
+                end_s = leave_end.strftime('%Y-%m-%d')
+                days = (leave_end - leave_start).days + 1
+                summary = f"{selected_name} 「{leave_type}」 {start_s} → {end_s}（共 {days} 天）"
+                token = _get_github_token()
+                try:
+                    if token:
+                        try:
+                            push_leave_to_github(
+                                token, selected_name, start_s, end_s,
+                                leave_type, note_text.strip(),
+                            )
+                            flash = ("success", f"✅ 已登记并同步至 GitHub：{summary}")
+                        except GitHubSyncError as e:
+                            add_employee_leave(selected_name, start_s, end_s, leave_type, note_text.strip())
+                            flash = ("warning",
+                                     f"⚠️ GitHub 同步失败：{e}。{summary} 已写入本地文件"
+                                     f"（云端环境重启后可能丢失），请稍后重试或手动提交。")
+                    else:
+                        add_employee_leave(selected_name, start_s, end_s, leave_type, note_text.strip())
+                        flash = ("info",
+                                 f"✅ 已登记到本地：{summary}。未配置 GITHUB_TOKEN——"
+                                 f"本地运行请记得 commit/push；云端部署请在 Secrets 配置"
+                                 f" GITHUB_TOKEN，否则应用重启后记录会丢失。")
+                    st.session_state['leave_flash'] = flash
+                    st.rerun()
+                except ValueError as e:
+                    st.error(f"❌ 登记失败：{e}")
+                except Exception as e:
+                    st.error(f"❌ 写入失败：{e}")
+
+    st.divider()
+
+    # 显示该员工已有请假记录
+    view_name = st.selectbox(
+        "查看员工已有请假记录",
+        employee_options,
+        key=f"{key_prefix}_leave_view",
+    )
+    latest_cfg = get_employees_config()
+    target_emp = next(
+        (emp for emp in latest_cfg.get('employees', []) if emp.get('name_cn') == view_name),
+        None,
+    )
+    existing_leaves = (target_emp or {}).get('leaves') or []
+
+    if existing_leaves:
+        leaves_df = pd.DataFrame([
+            {
+                "开始": lv.get('start'),
+                "结束": lv.get('end'),
+                "类型": lv.get('type'),
+                "备注": lv.get('note', ''),
+            }
+            for lv in existing_leaves
+        ])
+        st.dataframe(leaves_df, use_container_width=True, hide_index=True)
+    else:
+        st.info(f"📭 {view_name} 暂无请假记录。")
+
+
+def render_leave_overview(today: date) -> None:
+    """本周（周一起）及未来的全员请假一览，按开始日期排序。"""
+    monday = today - timedelta(days=today.weekday())
+    cfg = get_employees_config()
+    rows = []
+    for emp in cfg.get('employees', []):
+        for lv in emp.get('leaves') or []:
+            try:
+                lv_start = datetime.strptime(lv['start'], '%Y-%m-%d').date()
+                lv_end = datetime.strptime(lv['end'], '%Y-%m-%d').date()
+            except (KeyError, ValueError, TypeError):
+                continue
+            if lv_end >= monday:
+                rows.append({
+                    '姓名': emp.get('name_cn', ''),
+                    '开始': lv['start'],
+                    '结束': lv['end'],
+                    '类型': lv.get('type', ''),
+                    '备注': lv.get('note', ''),
+                    '_start': lv_start,
+                })
+    if rows:
+        overview_df = pd.DataFrame(rows).sort_values('_start').drop(columns='_start')
+        st.dataframe(overview_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("📭 本周及未来暂无请假记录")
+
+
+def render_leave_page() -> None:
+    st.subheader("🏖️ 员工请假登记")
+    st.caption(
+        "无需加载工时数据，随时登记。记录写入 config/employees.yaml 并同步 GitHub"
+        "（数据以 GitHub 仓库为准），周五自动周报会按请假调整标准工时。"
+    )
+    render_leave_form(default_date=date.today(), key_prefix="standalone")
+    st.divider()
+    st.markdown("#### 📋 本周及未来请假一览")
+    render_leave_overview(date.today())
+
+
+if st.session_state.app_mode == 'leave':
+    with st.sidebar:
+        st.markdown("### 🏖️ 请假登记")
+        if st.button("← 返回首页", use_container_width=True):
+            st.session_state.app_mode = 'welcome'
+            st.rerun()
+        st.caption("请假数据与工时分析相互独立，可随时返回首页进入分析。")
+    st.markdown(HERO_HTML, unsafe_allow_html=True)
+    render_leave_page()
+    st.stop()
 
 # ============================================
 # 侧边栏：引导式操作流程
@@ -720,6 +893,7 @@ with st.sidebar:
             st.error("暂无可用的预生成报告")
         else:
             st.session_state.analysis_started = True
+            st.session_state.app_mode = 'analysis'
             st.session_state.analysis_params = {
                 'data_source': data_source,
                 'reference_date': reference_date,
@@ -762,16 +936,33 @@ def fetch_and_process_from_notion(_token: str, ref_date: date):
 # ============================================
 # 主内容区
 # ============================================
-st.markdown('''
-<div class="hero-section">
-    <div class="main-eyebrow">美年健康研究院 · MIH</div>
-    <h1 class="main-header">团队工时分析系统</h1>
-    <p class="main-subtitle">追踪工时数据 · 解析工作负荷 · 洞察项目投入</p>
-</div>
-''', unsafe_allow_html=True)
+st.markdown(HERO_HTML, unsafe_allow_html=True)
 
-# 门控：未开始分析时显示欢迎页
+# 门控：未开始分析时显示欢迎页（双入口：请假登记 / 工时分析）
 if not st.session_state.analysis_started:
+    entry_left, entry_right = st.columns(2)
+    with entry_left:
+        st.markdown('''
+        <div class="welcome-step">
+            <div class="welcome-step-icon">🏖️</div>
+            <div class="welcome-step-title">请假登记</div>
+            <div class="welcome-step-desc">无需加载数据，随时登记 / 查看请假</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        if st.button("进入请假登记", use_container_width=True, key="enter_leave_mode"):
+            st.session_state.app_mode = 'leave'
+            st.rerun()
+    with entry_right:
+        st.markdown('''
+        <div class="welcome-step">
+            <div class="welcome-step-icon">📊</div>
+            <div class="welcome-step-title">工时分析</div>
+            <div class="welcome-step-desc">人员负荷、项目投入、AI 深度分析</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        st.caption("👈 在左侧配置数据源后点击「开始分析」")
+
+    st.divider()
     st.markdown("#### 三步开始分析")
 
     cols = st.columns(3)
@@ -842,6 +1033,7 @@ if st.session_state.loaded_data is None:
     except Exception as e:
         st.error(f"❌ 数据加载失败: {e}")
         st.session_state.analysis_started = False
+        st.session_state.app_mode = 'welcome'
         st.stop()
 
 df = st.session_state.loaded_data
@@ -1796,75 +1988,8 @@ with tab6:
 # ============================================
 with tab7:
     st.subheader("🏖️ 员工请假登记")
-    st.caption("登记后将写入 config/employees.yaml，自动用于工时达成率计算。")
-
-    employees_cfg = get_employees_config()
-    employee_options = [emp.get('name_cn') for emp in employees_cfg.get('employees', []) if emp.get('name_cn')]
-
-    if not employee_options:
-        st.warning("未在 employees.yaml 中找到任何员工。")
-    else:
-        with st.form("leave_entry_form", clear_on_submit=True):
-            fc1, fc2 = st.columns(2)
-            with fc1:
-                selected_name = st.selectbox("员工姓名", employee_options)
-                leave_type = st.selectbox("请假类型", ["年假", "病假", "事假", "调休"])
-            with fc2:
-                leave_start = st.date_input("请假开始日期", value=reference_date)
-                leave_end = st.date_input("请假结束日期", value=reference_date)
-
-            note_text = st.text_area("备注（可选）", placeholder="例如：陪家人就医", height=80)
-            submitted = st.form_submit_button("✅ 提交请假登记", use_container_width=True)
-
-            if submitted:
-                if leave_end < leave_start:
-                    st.error("❌ 请假结束日期不能早于开始日期。")
-                else:
-                    try:
-                        add_employee_leave(
-                            name_cn=selected_name,
-                            start=leave_start.strftime('%Y-%m-%d'),
-                            end=leave_end.strftime('%Y-%m-%d'),
-                            leave_type=leave_type,
-                            note=note_text.strip(),
-                        )
-                        days = (leave_end - leave_start).days + 1
-                        st.success(
-                            f"✅ 已登记成功：{selected_name} 「{leave_type}」"
-                            f" {leave_start} → {leave_end}（共 {days} 天）。"
-                        )
-                    except Exception as e:
-                        st.error(f"❌ 写入失败：{e}")
-
-        st.divider()
-
-        # 显示该员工已有请假记录（重新加载以反映刚刚的写入）
-        view_name = st.selectbox(
-            "查看员工已有请假记录",
-            employee_options,
-            index=employee_options.index(selected_name) if 'selected_name' in locals() and selected_name in employee_options else 0,
-            key="leave_view_selector",
-        )
-        latest_cfg = get_employees_config()
-        target_emp = next(
-            (emp for emp in latest_cfg.get('employees', []) if emp.get('name_cn') == view_name),
-            None,
-        )
-        existing_leaves = (target_emp or {}).get('leaves') or []
-
-        if existing_leaves:
-            leaves_df = pd.DataFrame([
-                {
-                    "开始": lv.get('start'),
-                    "结束": lv.get('end'),
-                    "类型": lv.get('type'),
-                    "备注": lv.get('note', ''),
-                }
-                for lv in existing_leaves
-            ])
-            st.dataframe(leaves_df, use_container_width=True, hide_index=True)
-        else:
-            st.info(f"📭 {view_name} 暂无请假记录。")
+    st.caption("登记后写入 config/employees.yaml 并同步 GitHub，分析结果即时按请假重算达成率。")
+    render_leave_form(default_date=reference_date, key_prefix="tab7")
 
 # ============================================
 # Tab 8: 项目进度（动量 + 停滞）

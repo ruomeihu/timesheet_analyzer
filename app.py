@@ -598,6 +598,17 @@ def _get_github_token() -> str:
     return token
 
 
+def _is_departed(emp: dict) -> bool:
+    """offboard_date 已到（含今天）即视为离职。"""
+    raw = emp.get('offboard_date')
+    if not raw:
+        return False
+    try:
+        return datetime.strptime(str(raw), '%Y-%m-%d').date() <= date.today()
+    except (ValueError, TypeError):
+        return False
+
+
 def render_leave_form(default_date: date, key_prefix: str) -> None:
     """请假登记表单 + 已有记录查看。独立请假页与分析模式 Tab 7 复用。
 
@@ -611,7 +622,11 @@ def render_leave_form(default_date: date, key_prefix: str) -> None:
         getattr(st, level)(msg)
 
     employees_cfg = get_employees_config()
-    employee_options = [emp.get('name_cn') for emp in employees_cfg.get('employees', []) if emp.get('name_cn')]
+    # 离职员工（offboard_date 已生效）不出现在请假登记名单中
+    employee_options = [
+        emp.get('name_cn') for emp in employees_cfg.get('employees', [])
+        if emp.get('name_cn') and not _is_departed(emp)
+    ]
 
     if not employee_options:
         st.warning("未在 employees.yaml 中找到任何员工。")
@@ -843,16 +858,6 @@ with st.sidebar:
     with st.expander("👥 员工配置预览"):
         config = get_employees_config()
         employees = config.get('employees', [])
-
-        def _is_departed(emp: dict) -> bool:
-            """offboard_date 已到（含今天）即视为离职。"""
-            raw = emp.get('offboard_date')
-            if not raw:
-                return False
-            try:
-                return datetime.strptime(str(raw), '%Y-%m-%d').date() <= date.today()
-            except (ValueError, TypeError):
-                return False
 
         emp_df = pd.DataFrame([
             {

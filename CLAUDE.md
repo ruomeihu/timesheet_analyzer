@@ -81,7 +81,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - 员工离职：在 `config/employees.yaml` 给该员工加 `offboard_date: "YYYY-MM-DD"`（离职生效日，含；与 `onboard_date` 对称）。`preprocessor.py:_filter_departed_members` 按 **ISO 报告周** 粒度整周剔除其工时（含离职前几天），离职生效周及之后全链路（分析/图表/AI/sidecar/钉钉）不出现，离职前历史周不受影响。⚠️ 分析是**数据驱动**的（按 DataFrame 里实际有数据的成员，非 yaml 名单）——仅从 Notion 删人但工时记录仍在时，本周报告仍会拉到他并可能误标「📉 偏低」，必须靠 offboard_date 剔除。测试：`python test_offboard_filter.py`
 - ⚠️ offboard 是**按名字匹配**剔除的，但离职后**删除 Notion 账号**会抹掉工时行的成员名（person `name=null`→「未知」，或 people 空数组→`""`/CSV 往返后 NaN→「未知」），此时名字匹配漏剔，会冒出幻影「未知/按需」成员。兜底在 `preprocessor.py:_filter_unidentified_members`（step 2.5，姓名标准化后）：丢弃 `成员_中文` 为 未知/空/NaN 的行并打印告警。语义安全——未映射的真实人名会原样透传，绝不会变「未知」。测试：`python test_unidentified_filter.py`
 - Streamlit「预生成报告」模式是**实时从 CSV 重算**（`app.py:803-806` `preprocess_data`+`TimesheetAnalyzer`），不读 md/json。改预处理/分析逻辑后**前端重启即生效**；但 md/sidecar/PDF/Gamma 是静态产物，需 `auto_weekly_report.py` 重生才更新。前端表里若仍有旧数据，先分清看的是实时重算（重启 app）还是静态产物（重生）
-- 侧边栏「员工配置预览」(`app.py:670`)：`offboard_date <= 今天` 的员工类型显示为「离职」、整行置灰、稳定排序到表末（在职原顺序不变）。判定独立于报告周，用 `date.today()`
+- 离职判定共享函数 `app.py:_is_departed`（模块级，`offboard_date <= date.today()` 即离职，独立于报告周）：① 侧边栏「员工配置预览」——离职员工类型显示「离职」、整行置灰、稳定排序到表末（在职原顺序不变）；② 请假登记表单（独立页 + Tab 7）——离职员工从「员工姓名」和「查看已有请假记录」两个下拉框中剔除，不可再登记请假。给员工加 `offboard_date` 后这两处与周报剔除（`_filter_departed_members`）同时生效
 - API Token 通过 Streamlit secrets (`st.secrets`) 或环境变量 (`os.getenv`) 读取，优先 secrets
 - `@st.cache_data` 用于缓存数据加载，Notion 直连 TTL=300 秒
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`

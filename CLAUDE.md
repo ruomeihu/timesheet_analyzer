@@ -129,6 +129,7 @@ All of the above must also live in GitHub Actions secrets for the Friday CI work
 
 ## Known Issues / Tech Debt
 
+- ⚠️ **Streamlit Cloud 脏挂载 ImportError**（2026-06-11 踩坑）：连续多次 push main（如请假同步 + 还原 + 合并在几分钟内连发）会触发多次增量部署互相踩踏，云端挂载可能留下「部分文件新、部分文件旧」的混合状态——典型症状是莫名 `ImportError: cannot import name ...`（traceback 显示新代码行号、却找不到同仓库另一文件里的新名字），而 git 仓库本身完全正确。**再推空 commit 重部署无效，唯一修法：share.streamlit.io → 应用 ⋮ → Reboot app**。注意：现在每次前端请假提交都会产生一个 main commit 并触发云端重部署（活跃会话约 30-60s 后被重启、session_state 清空，属设计内接受的代价），所以这个坑将来可能复现，见 ImportError 先 Reboot 不用慌
 - [ ] Webhook notifications are coded but disabled (planned activation in Phase 3). Email is active via 126 SMTP (smtp.126.com:465 SSL) using `MAIL_SENDER` env var
 - [ ] CI `git add reports/` commits the Gamma PDF every Friday (~4 MB/week, ~200 MB/year). Consider git LFS or `.gitignore reports/*.pdf` (would break Streamlit Cloud's PDF download button)
 

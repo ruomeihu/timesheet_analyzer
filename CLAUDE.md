@@ -28,6 +28,7 @@ python dingtalk_report_push.py
 
 # 测试
 python test_spring_festival_weeks.py          # 节假日逻辑测试
+python test_github_sync.py                    # 请假 GitHub 同步测试（mock，无需 token）
 NOTION_API_TOKEN=xxx python test_notion_connection.py  # Notion 连接测试
 
 # 语法检查（无 lint 工具配置）
@@ -40,7 +41,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 ### 入口脚本
 
-- `app.py` — Streamlit Web 前端（6 个 tab），支持三种数据源：预生成报告 / Notion 直连 / CSV 上传
+- `app.py` — Streamlit Web 前端（8 个 tab），支持三种数据源：预生成报告 / Notion 直连 / CSV 上传。首页双入口：「🏖️ 请假登记」（`app_mode='leave'` 独立模式，免加载数据秒开）和「📊 工时分析」（原有流程）。请假表单 `render_leave_form` 由独立请假页与 Tab 7 复用，提交成功后 `st.rerun()` 让已加载分析即时按新请假重算达成率
 - `main.py` — 命令行入口，读 CSV 输出报告+图表
 - `auto_weekly_report.py` — 定时任务入口，从 Notion 拉数据 → 分析 → 可选邮件通知。邮件 **opt-in**（`CONFIG.email.enabled` 默认 False，仅 `--email` 时发；CI `weekly_report.yml` 已显式传 `--email`）。默认输出目录是 `~/Documents/MIH_Reports`，CI/本地重生靠 `--output-dir ./reports`。GitHub Actions 每周五北京时间 13:00 自动运行
 - `dingtalk_reminder.py` — 周五 9:00 钉钉群提醒填工时，无数据依赖。Workflow: `.github/workflows/dingtalk_reminder.yml`
@@ -53,6 +54,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - **analyzer.py** — `TimesheetAnalyzer(df)` 核心分析引擎。返回 `MemberAnalysis` 和 `ProjectAnalysis` dataclass。状态判定阈值：超负荷 >1.2x 标准工时，偏低 <0.7x。标准工时会根据节假日和请假自动调整
 - **ai_analyzer.py** — Claude API 深度分析（4 维度 10 指标）。`generate_quick_scan()` 是纯本地规则计算，不调 API。`analyze()` 调用 Claude API 返回 `AIInsightResult`
 - **notion_connector.py** — `NotionConnector` 封装 Notion API（2025-09-03 版本，使用 data_sources 端点）。`fetch_timesheet(start, end)` 返回与 CSV 格式一致的 DataFrame
+- **github_sync.py** — `push_leave_to_github()` 把请假记录经 GitHub Contents API 直接 commit 到仓库 main 的 `config/employees.yaml`（安全写路径：GET 仓库最新内容 → `config.add_leave_to_yaml_text` 纯变换 → 带 sha PUT，冲突自动重拉重试一次，成功后回写本地文件）。解决 Streamlit Cloud 文件系统易失、周五 CI 看不到前端录入请假的问题。⚠️ 请假数据直接 commit main 是**设计行为**（产品数据），区别于代码改动必须走 feature branch + PR 的约定
 - **visualizer.py** — matplotlib 图表生成，`create_visualizations()` 生成组合图，`create_single_chart()` 生成单图
 - **report_generator.py** — `generate_markdown_report()` 生成 Markdown 报告，支持 next_week 和 ai_insights 可选参数
 
@@ -96,6 +98,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 All read via `os.getenv()` (Streamlit also accepts `st.secrets`):
 
 - `NOTION_API_TOKEN` — required for Notion API
+- `GITHUB_TOKEN` — fine-grained PAT（仅本仓库 Contents 读写权限），前端请假登记同步到仓库 main 用；missing → 仅写本地 yaml 并提示（云端环境重启会丢）。需配到 **Streamlit Cloud Secrets**（周五 CI 不需要它，CI 用 Actions 自带 token）。可选 `GITHUB_REPO` 覆盖默认仓库 `ruomeihu/timesheet_analyzer`
 - `ANTHROPIC_API_KEY` — Claude AI deep analysis; missing → graceful skip
 - `MAIL_SENDER` — 126 邮箱授权码 (not login password); missing → email skipped
 - `GAMMA_API_KEY` — Gamma Pro+ key for online PPT; missing → skip with warning

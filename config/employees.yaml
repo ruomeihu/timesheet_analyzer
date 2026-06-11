@@ -142,6 +142,10 @@ employees:
 
 
   # === 兼职员工 ===
+    leaves:
+      - start: "2026-06-09"
+        end: "2026-06-09"
+        type: "年假"
   - name_cn: "聂鑫"
     name_en: "xin nie"
     type: "兼职"

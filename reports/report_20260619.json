@@ -1,0 +1,68 @@
+{
+  "gammaUrl": "https://gamma.app/docs/fmxnamhgvjg3v2b",
+  "exportUrl": "https://assets.api.gamma.app/export/pdf/fmxnamhgvjg3v2b/db1324f89a10cae3b7b8903a39ae4cfc/fmxnamhgvjg3v2b.pdf",
+  "generationId": "ueUh1go3C3acxbFWsLMjy",
+  "generatedAt": "2026-06-19T06:51:32",
+  "source": "ci",
+  "weekStats": {
+    "weekNum": 25,
+    "totalHours": 182.0,
+    "projectCount": 19,
+    "top3Projects": [
+      {
+        "name": "美年健康血液学生理学年龄评估",
+        "hours": 68.0
+      },
+      {
+        "name": "团队管理与数据运营",
+        "hours": 18.0
+      },
+      {
+        "name": "数据中台建设项目",
+        "hours": 17.5
+      }
+    ],
+    "categories": [
+      {
+        "attribute": "战略项目",
+        "hours": 85.5,
+        "top1": {
+          "name": "美年健康血液学生理学年龄评估",
+          "hours": 68.0
+        }
+      },
+      {
+        "attribute": "付费项目",
+        "hours": 24.0,
+        "top1": {
+          "name": "医疗健康行业周报2026",
+          "hours": 12.5
+        }
+      },
+      {
+        "attribute": "售前项目",
+        "hours": 4.0,
+        "top1": {
+          "name": "中再保险-全癌种数据合作",
+          "hours": 3.0
+        }
+      },
+      {
+        "attribute": "支持/运营项目",
+        "hours": 68.5,
+        "top1": {
+          "name": "团队管理与数据运营",
+          "hours": 18.0
+        }
+      }
+    ],
+    "unalignedHours": 1.0,
+    "unalignedPct": 0.5,
+    "nextWeek": {
+      "totalHours": 62.0,
+      "projectCount": 8
+    }
+  },
+  "aiInsights": null,
+  "aiInsightsGeneratedAt": null
+}

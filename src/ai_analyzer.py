@@ -27,7 +27,7 @@ from config import get_employees_config
 @dataclass
 class AIAnalysisConfig:
     """AI 分析配置"""
-    model: str = "claude-sonnet-4-20250514"
+    model: str = "claude-sonnet-4-6"
     max_tokens: int = 8192
     temperature: float = 0.3
 
@@ -135,7 +135,7 @@ class AIAnalyzer:
         ai_settings = defaults.get('ai_analysis', {})
 
         return AIAnalysisConfig(
-            model=ai_settings.get('model', 'claude-sonnet-4-20250514'),
+            model=ai_settings.get('model', 'claude-sonnet-4-6'),
             max_tokens=ai_settings.get('max_tokens', 8192),
             temperature=ai_settings.get('temperature', 0.3)
         )

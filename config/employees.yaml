@@ -32,7 +32,7 @@ defaults:
   # AI 分析配置
   ai_analysis:
     enabled: true
-    model: "claude-sonnet-4-20250514"
+    model: "claude-sonnet-4-6"
     max_tokens: 8192
     temperature: 0.3
 

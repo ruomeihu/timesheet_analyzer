@@ -28,8 +28,9 @@ from config import get_employees_config
 class AIAnalysisConfig:
     """AI 分析配置"""
     model: str = "claude-sonnet-4-6"
-    max_tokens: int = 8192
+    max_tokens: int = 16384
     temperature: float = 0.3
+    effort: str = "medium"   # Sonnet 4.6 的 effort，默认 high 篇幅过长，medium 收敛
 
 
 @dataclass
@@ -76,6 +77,94 @@ def deserialize_ai_insights(data: Dict[str, Any]) -> AIInsightResult:
         recommendations=data.get("recommendations") or [],
         raw_response=data.get("raw_response", "") or "",
     )
+
+
+def _obj(props: Dict[str, Dict], required: List[str]) -> Dict:
+    """构造 structured-outputs 用的 object schema（强制 additionalProperties=False）。"""
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": required,
+        "properties": props,
+    }
+
+
+_STR = {"type": "string"}
+_NUM = {"type": "number"}
+
+# Structured Outputs JSON Schema —— 与 _parse_response 读取的结构一一对应。
+# 走 output_config.format 后由 API 层强制保证合法 JSON，根治
+# 「字符串值内未转义英文双引号」导致的解析失败（Sonnet 4.6 文风易踩）。
+_ANALYSIS_SCHEMA = _obj(
+    {
+        "executive_summary": _STR,
+        "dimensions": {
+            "type": "array",
+            "items": _obj(
+                {
+                    "dimension": _STR,
+                    "indicators": {
+                        "type": "array",
+                        "items": _obj(
+                            {
+                                "name": _STR,
+                                "value": _STR,
+                                "assessment": _STR,
+                                "finding": _STR,
+                                "severity": _STR,
+                            },
+                            ["name", "value", "assessment", "finding", "severity"],
+                        ),
+                    },
+                    "summary": _STR,
+                    "severity": _STR,
+                },
+                ["dimension", "indicators", "summary", "severity"],
+            ),
+        },
+        "quick_scan": _obj(
+            {
+                "anomalies": {
+                    "type": "array",
+                    "items": _obj(
+                        {"type": _STR, "member": _STR, "value": _STR, "concern": _STR},
+                        ["type", "member", "value", "concern"],
+                    ),
+                },
+                "core_projects": {
+                    "type": "array",
+                    "items": _obj(
+                        {"project": _STR, "hours": _NUM, "status": _STR, "comment": _STR},
+                        ["project", "hours", "status", "comment"],
+                    ),
+                },
+                "black_holes": {
+                    "type": "array",
+                    "items": _obj(
+                        {"category": _STR, "hours": _NUM, "percentage": _STR, "risk": _STR},
+                        ["category", "hours", "percentage", "risk"],
+                    ),
+                },
+                "action_items": {"type": "array", "items": _STR},
+            },
+            ["anomalies", "core_projects", "black_holes", "action_items"],
+        ),
+        "recommendations": {
+            "type": "array",
+            "items": _obj(
+                {
+                    "priority": _STR,
+                    "category": _STR,
+                    "title": _STR,
+                    "description": _STR,
+                    "expected_impact": _STR,
+                },
+                ["priority", "category", "title", "description", "expected_impact"],
+            ),
+        },
+    },
+    ["executive_summary", "dimensions", "quick_scan", "recommendations"],
+)
 
 
 class AIAnalyzer:
@@ -136,8 +225,9 @@ class AIAnalyzer:
 
         return AIAnalysisConfig(
             model=ai_settings.get('model', 'claude-sonnet-4-6'),
-            max_tokens=ai_settings.get('max_tokens', 8192),
-            temperature=ai_settings.get('temperature', 0.3)
+            max_tokens=ai_settings.get('max_tokens', 16384),
+            temperature=ai_settings.get('temperature', 0.3),
+            effort=ai_settings.get('effort', 'medium')
         )
 
     def analyze(
@@ -462,13 +552,24 @@ class AIAnalyzer:
             model=self.ai_config.model,
             max_tokens=self.ai_config.max_tokens,
             temperature=self.ai_config.temperature,
+            output_config={
+                "effort": self.ai_config.effort,
+                # Structured Outputs：API 层强制合法 JSON，根治野生引号导致的解析失败
+                "format": {"type": "json_schema", "schema": _ANALYSIS_SCHEMA},
+            },
             system=system_prompt,
             messages=[
                 {"role": "user", "content": user_prompt}
             ]
         )
 
-        return message.content[0].text, message.stop_reason
+        # 防御性取文本块：若 adaptive thinking 触发，content[0] 可能是 thinking 块
+        # （无 .text 属性），死取 content[0].text 会崩溃。取第一个 type=="text" 的块。
+        text = next(
+            (b.text for b in message.content if getattr(b, "type", None) == "text"),
+            ""
+        )
+        return text, message.stop_reason
 
     def _clean_json_string(self, raw: str) -> str:
         """

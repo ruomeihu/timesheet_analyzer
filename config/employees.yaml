@@ -33,8 +33,9 @@ defaults:
   ai_analysis:
     enabled: true
     model: "claude-sonnet-4-6"
-    max_tokens: 8192
+    max_tokens: 16384   # Sonnet 4.6 输出比 Sonnet 4 详细约 3 倍，8192 会截断导致 JSON 不完整
     temperature: 0.3
+    effort: "medium"    # 4.6 默认 effort=high 篇幅过长，medium 收敛篇幅 + 降本提速
 
 # 项目分类参考（辅助 AI 分析）
 project_categories:

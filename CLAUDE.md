@@ -52,7 +52,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - **data_loader.py** — `load_timesheet()` 加载 CSV，`validate_data()` 校验必需列（成员、日期、工时 h）
 - **preprocessor.py** — `preprocess_data(df, reference_date)` 标准化姓名、清理项目名、按 ISO 周划分周期类型（本周/下周/往期/未来），挂载员工配置。`filter_by_period(df, "本周")` 按周期过滤
 - **analyzer.py** — `TimesheetAnalyzer(df)` 核心分析引擎。返回 `MemberAnalysis` 和 `ProjectAnalysis` dataclass。状态判定阈值：超负荷 >1.2x 标准工时，偏低 <0.7x。标准工时会根据节假日和请假自动调整
-- **ai_analyzer.py** — Claude API 深度分析（4 维度 10 指标）。`generate_quick_scan()` 是纯本地规则计算，不调 API。`analyze()` 调用 Claude API 返回 `AIInsightResult`
+- **ai_analyzer.py** — Claude API 深度分析（4 维度 10 指标）。`generate_quick_scan()` 是纯本地规则计算，不调 API。`analyze()` 调用 Claude API 返回 `AIInsightResult`。模型/max_tokens/temperature 在 `config/employees.yaml` 的 `defaults.ai_analysis` 配置（当前模型 `claude-sonnet-4-6`，由 `_load_ai_config()` 读取，**无 `CLAUDE_MODEL` 等环境变量覆盖**——升级模型改这一处即可，dataclass 默认值和 `.get()` 兜底值同步即可）
 - **notion_connector.py** — `NotionConnector` 封装 Notion API（2025-09-03 版本，使用 data_sources 端点）。`fetch_timesheet(start, end)` 返回与 CSV 格式一致的 DataFrame
 - **github_sync.py** — `push_leave_to_github()` 把请假记录经 GitHub Contents API 直接 commit 到仓库 main 的 `config/employees.yaml`（安全写路径：GET 仓库最新内容 → `config.add_leave_to_yaml_text` 纯变换 → 带 sha PUT，冲突自动重拉重试一次，成功后回写本地文件）。解决 Streamlit Cloud 文件系统易失、周五 CI 看不到前端录入请假的问题。⚠️ 请假数据直接 commit main 是**设计行为**（产品数据），区别于代码改动必须走 feature branch + PR 的约定
 - **visualizer.py** — matplotlib 图表生成，`create_visualizations()` 生成组合图，`create_single_chart()` 生成单图

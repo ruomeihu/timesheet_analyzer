@@ -1,0 +1,68 @@
+{
+  "gammaUrl": "https://gamma.app/docs/7zninjhobasm4fs",
+  "exportUrl": "https://assets.api.gamma.app/export/pdf/7zninjhobasm4fs/413e2e0757fbdfa256ad3f0b0804f044/7zninjhobasm4fs.pdf",
+  "generationId": "S5AL52B00BsR5Eis7vChp",
+  "generatedAt": "2026-06-26T06:31:12",
+  "source": "ci",
+  "weekStats": {
+    "weekNum": 26,
+    "totalHours": 256.0,
+    "projectCount": 16,
+    "top3Projects": [
+      {
+        "name": "数据中台建设项目",
+        "hours": 70.5
+      },
+      {
+        "name": "龙岩政府：生物银行与数据合作项目",
+        "hours": 48.0
+      },
+      {
+        "name": "健康智谷相关工作",
+        "hours": 23.0
+      }
+    ],
+    "categories": [
+      {
+        "attribute": "战略项目",
+        "hours": 86.5,
+        "top1": {
+          "name": "数据中台建设项目",
+          "hours": 70.5
+        }
+      },
+      {
+        "attribute": "付费项目",
+        "hours": 51.0,
+        "top1": {
+          "name": "医疗健康行业周报2026",
+          "hours": 19.0
+        }
+      },
+      {
+        "attribute": "售前项目",
+        "hours": 57.0,
+        "top1": {
+          "name": "龙岩政府：生物银行与数据合作项目",
+          "hours": 48.0
+        }
+      },
+      {
+        "attribute": "支持/运营项目",
+        "hours": 61.5,
+        "top1": {
+          "name": "健康智谷相关工作",
+          "hours": 23.0
+        }
+      }
+    ],
+    "unalignedHours": 4.5,
+    "unalignedPct": 1.8,
+    "nextWeek": {
+      "totalHours": 127.5,
+      "projectCount": 10
+    }
+  },
+  "aiInsights": null,
+  "aiInsightsGeneratedAt": null
+}

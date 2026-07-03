@@ -121,6 +121,10 @@ employees:
       - "数据技术"
     onboard_date: "2026-02-04"  # 入职日期
 
+    leaves:
+      - start: "2026-07-03"
+        end: "2026-07-03"
+        type: "年假"
   - name_cn: "赵启"
     name_en: "赵启"
     type: "全职"

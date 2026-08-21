@@ -1,0 +1,68 @@
+{
+  "gammaUrl": "https://gamma.app/docs/pzopj38gz8zqdaf",
+  "exportUrl": "https://assets.api.gamma.app/export/pdf/pzopj38gz8zqdaf/8c245f2b2f4acb9b3f8d6618e393218d/pzopj38gz8zqdaf.pdf",
+  "generationId": "cJODZZz7kw2QHv2eKQb6C",
+  "generatedAt": "2026-08-21T05:41:37",
+  "source": "ci",
+  "weekStats": {
+    "weekNum": 34,
+    "totalHours": 227.5,
+    "projectCount": 17,
+    "top3Projects": [
+      {
+        "name": "研究院 · 科研数据中台 · 平台研发",
+        "hours": 54.0
+      },
+      {
+        "name": "研究院 · 生理年龄评估 AgeLens · 公司孵化",
+        "hours": 35.0
+      },
+      {
+        "name": "国家数据局 · 数字化转型 · 专项课题 (2026年度)",
+        "hours": 31.0
+      }
+    ],
+    "categories": [
+      {
+        "attribute": "战略项目",
+        "hours": 91.0,
+        "top1": {
+          "name": "研究院 · 科研数据中台 · 平台研发",
+          "hours": 54.0
+        }
+      },
+      {
+        "attribute": "付费项目",
+        "hours": 64.5,
+        "top1": {
+          "name": "中再保险 · 四类癌症风险 · 数据服务",
+          "hours": 25.0
+        }
+      },
+      {
+        "attribute": "售前项目",
+        "hours": 36.5,
+        "top1": {
+          "name": "国家数据局 · 数字化转型 · 专项课题 (2026年度)",
+          "hours": 31.0
+        }
+      },
+      {
+        "attribute": "支持/运营项目",
+        "hours": 35.5,
+        "top1": {
+          "name": "研究院平面设计",
+          "hours": 11.5
+        }
+      }
+    ],
+    "unalignedHours": 0,
+    "unalignedPct": 0.0,
+    "nextWeek": {
+      "totalHours": 99.0,
+      "projectCount": 7
+    }
+  },
+  "aiInsights": null,
+  "aiInsightsGeneratedAt": null
+}

@@ -1,0 +1,68 @@
+{
+  "gammaUrl": "https://gamma.app/docs/8j1kscldmjhomne",
+  "exportUrl": "https://assets.api.gamma.app/export/pdf/8j1kscldmjhomne/580bd135066ebace11fcf6f7c318fd68/8j1kscldmjhomne.pdf",
+  "generationId": "0fzIyYAM70k5e5XWUSYcr",
+  "generatedAt": "2026-08-28T17:21:30",
+  "source": "ci",
+  "weekStats": {
+    "weekNum": 35,
+    "totalHours": 232.0,
+    "projectCount": 17,
+    "top3Projects": [
+      {
+        "name": "研究院 · 科研数据中台 · 平台研发",
+        "hours": 62.0
+      },
+      {
+        "name": "研究院 · 生理年龄评估 AgeLens · 公司孵化",
+        "hours": 56.0
+      },
+      {
+        "name": "美年集团 · 医疗健康行业 · 定期报告 (2026年度)",
+        "hours": 19.0
+      }
+    ],
+    "categories": [
+      {
+        "attribute": "战略项目",
+        "hours": 118.0,
+        "top1": {
+          "name": "研究院 · 科研数据中台 · 平台研发",
+          "hours": 62.0
+        }
+      },
+      {
+        "attribute": "付费项目",
+        "hours": 61.5,
+        "top1": {
+          "name": "美年集团 · 医疗健康行业 · 定期报告 (2026年度)",
+          "hours": 19.0
+        }
+      },
+      {
+        "attribute": "售前项目",
+        "hours": 10.5,
+        "top1": {
+          "name": "驼巢 · 驼乳真实世界研究 · 研究课题",
+          "hours": 4.0
+        }
+      },
+      {
+        "attribute": "支持/运营项目",
+        "hours": 42.0,
+        "top1": {
+          "name": "院长助理相关工作",
+          "hours": 15.0
+        }
+      }
+    ],
+    "unalignedHours": 0,
+    "unalignedPct": 0.0,
+    "nextWeek": {
+      "totalHours": 107.5,
+      "projectCount": 11
+    }
+  },
+  "aiInsights": null,
+  "aiInsightsGeneratedAt": null
+}

@@ -52,9 +52,9 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - **data_loader.py** — `load_timesheet()` 加载 CSV，`validate_data()` 校验必需列（成员、日期、工时 h）
 - **preprocessor.py** — `preprocess_data(df, reference_date)` 标准化姓名、清理项目名、按 ISO 周划分周期类型（本周/下周/往期/未来），挂载员工配置。`filter_by_period(df, "本周")` 按周期过滤
 - **analyzer.py** — `TimesheetAnalyzer(df)` 核心分析引擎。返回 `MemberAnalysis` 和 `ProjectAnalysis` dataclass。状态判定阈值：超负荷 >1.2x 标准工时，偏低 <0.7x。标准工时会根据节假日和请假自动调整
-- **ai_analyzer.py** — Claude API 深度分析（4 维度 10 指标）。`generate_quick_scan()` 是纯本地规则计算，不调 API。`analyze()` 调用 Claude API 返回 `AIInsightResult`。模型/max_tokens/temperature 在 `config/employees.yaml` 的 `defaults.ai_analysis` 配置（当前模型 `claude-sonnet-4-6`，由 `_load_ai_config()` 读取，**无 `CLAUDE_MODEL` 等环境变量覆盖**——升级模型改这一处即可，dataclass 默认值和 `.get()` 兜底值同步即可）
+- **ai_analyzer.py** — Claude API 深度分析（4 维度 10 指标）。`generate_quick_scan()` 是纯本地规则计算，不调 API。`analyze()` 调用 Claude API 返回 `AIInsightResult`。模型/max_tokens/effort 在 `config/employees.yaml` 的 `defaults.ai_analysis` 配置（当前模型 `claude-sonnet-4-6`，由 `_load_ai_config()` 读取，**无 `CLAUDE_MODEL` 等环境变量覆盖**——升级模型改这一处即可，dataclass 默认值和 `.get()` 兜底值同步即可）。⚠️ **不要给 `messages.create()` 加回 `temperature`/`top_p`/`top_k`**——anthropic SDK 1.x 已移除这些参数（2026-08 曾因此 CI 连续两周静默失败）
 - **notion_connector.py** — `NotionConnector` 封装 Notion API（2025-09-03 版本，使用 data_sources 端点）。`fetch_timesheet(start, end)` 返回与 CSV 格式一致的 DataFrame
-- **github_sync.py** — `push_leave_to_github()` 把请假记录经 GitHub Contents API 直接 commit 到仓库 main 的 `config/employees.yaml`（安全写路径：GET 仓库最新内容 → `config.add_leave_to_yaml_text` 纯变换 → 带 sha PUT，冲突自动重拉重试一次，成功后回写本地文件）。解决 Streamlit Cloud 文件系统易失、周五 CI 看不到前端录入请假的问题。⚠️ 请假数据直接 commit main 是**设计行为**（产品数据），区别于代码改动必须走 feature branch + PR 的约定
+- **github_sync.py** — `push_leave_to_github()` 把请假记录经 GitHub Contents API 直接 commit 到仓库 main 的 `config/employees.yaml`（安全写路径：GET 仓库最新内容 → `config.add_leave_to_yaml_text` 纯变换 → 带 sha PUT，冲突自动重拉重试一次，成功后回写本地文件）。解决 Streamlit Cloud 文件系统易失、周五 CI 看不到前端录入请假的问题。⚠️ 请假数据直接 commit main 是**设计行为**（产品数据），区别于代码改动必须走 feature branch + PR 的约定。⚠️ 前端提交按钮被连点会产生两条相同 leaves 记录 + 两个 commit（重复请假会双倍扣减标准工时、虚高达成率）——用户报请假后核对 `config/employees.yaml`，重复则删一条直接提交 main
 - **visualizer.py** — matplotlib 图表生成，`create_visualizations()` 生成组合图，`create_single_chart()` 生成单图
 - **report_generator.py** — `generate_markdown_report()` 生成 Markdown 报告，支持 next_week 和 ai_insights 可选参数
 
@@ -129,6 +129,7 @@ All of the above must also live in GitHub Actions secrets for the Friday CI work
 
 ## Known Issues / Tech Debt
 
+- ⚠️ **AI 深度分析失败是静默的**（2026-09-04 踩坑）：`analyze()` 抛异常时 `auto_weekly_report.py` 优雅跳过，CI 仍显示 success，唯一可见症状是 sidecar `aiInsights: null` 和钉钉/报告缺 AI 段落——曾因 anthropic SDK 1.0 移除 `temperature` 而连续两周无人察觉。排查入口：`gh run view <id> --log | grep "AI 分析失败"`。预防：`requirements.txt` 依赖必须设上界（现 `anthropic>=1,<2`），CI 每周五装最新版，无上界=每周裸奔大版本
 - ⚠️ **Streamlit Cloud 脏挂载 ImportError**（2026-06-11 踩坑）：连续多次 push main（如请假同步 + 还原 + 合并在几分钟内连发）会触发多次增量部署互相踩踏，云端挂载可能留下「部分文件新、部分文件旧」的混合状态——典型症状是莫名 `ImportError: cannot import name ...`（traceback 显示新代码行号、却找不到同仓库另一文件里的新名字），而 git 仓库本身完全正确。**再推空 commit 重部署无效，唯一修法：share.streamlit.io → 应用 ⋮ → Reboot app**。注意：现在每次前端请假提交都会产生一个 main commit 并触发云端重部署（活跃会话约 30-60s 后被重启、session_state 清空，属设计内接受的代价），所以这个坑将来可能复现，见 ImportError 先 Reboot 不用慌
 - [ ] Webhook notifications are coded but disabled (planned activation in Phase 3). Email is active via 126 SMTP (smtp.126.com:465 SSL) using `MAIL_SENDER` env var
 - [ ] CI `git add reports/` commits the Gamma PDF every Friday (~4 MB/week, ~200 MB/year). Consider git LFS or `.gitignore reports/*.pdf` (would break Streamlit Cloud's PDF download button)

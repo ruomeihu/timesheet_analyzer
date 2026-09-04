@@ -23,5 +23,5 @@ requests>=2.28.0
 # chinesecalendar>=1.8.0
 
 # AI 分析（可选）
-anthropic>=0.18.0
+anthropic>=1,<2
 python-dotenv>=1.0.0

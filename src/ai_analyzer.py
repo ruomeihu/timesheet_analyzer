@@ -29,7 +29,6 @@ class AIAnalysisConfig:
     """AI 分析配置"""
     model: str = "claude-sonnet-4-6"
     max_tokens: int = 16384
-    temperature: float = 0.3
     effort: str = "medium"   # Sonnet 4.6 的 effort，默认 high 篇幅过长，medium 收敛
 
 
@@ -226,7 +225,6 @@ class AIAnalyzer:
         return AIAnalysisConfig(
             model=ai_settings.get('model', 'claude-sonnet-4-6'),
             max_tokens=ai_settings.get('max_tokens', 16384),
-            temperature=ai_settings.get('temperature', 0.3),
             effort=ai_settings.get('effort', 'medium')
         )
 
@@ -551,7 +549,6 @@ class AIAnalyzer:
         message = self.client.messages.create(
             model=self.ai_config.model,
             max_tokens=self.ai_config.max_tokens,
-            temperature=self.ai_config.temperature,
             output_config={
                 "effort": self.ai_config.effort,
                 # Structured Outputs：API 层强制合法 JSON，根治野生引号导致的解析失败

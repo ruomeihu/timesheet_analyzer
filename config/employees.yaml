@@ -79,6 +79,11 @@ employees:
     #     end: "2025-10-07"
     #     type: "年假"
 
+    leaves:
+      - start: "2026-08-31"
+        end: "2026-09-02"
+        type: "年假"
+        note: "回老家处理个人事物"
   - name_cn: "魏超"
     name_en: "Weichao"
     type: "全职"

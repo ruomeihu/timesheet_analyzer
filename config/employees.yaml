@@ -112,6 +112,10 @@ employees:
       - start: "2026-06-13"
         end: "2026-06-13"
         type: "年假"
+      - start: "2026-09-11"
+        end: "2026-09-11"
+        type: "年假"
+        note: "处理个人事务"
   - name_cn: "王晓书"
     name_en: "xiaoshu"
     type: "全职"
@@ -159,6 +163,19 @@ employees:
       - start: "2026-06-09"
         end: "2026-06-09"
         type: "年假"
+  - name_cn: "杨星"
+    name_en: "杨星"              # Notion 账号为中文同名
+    type: "全职"
+    standard_hours: 40
+    department: "数据平台部"
+    position: "医学经理"
+    responsibilities:
+      - "医学规则梳理"
+      - "医学知识体系与术语标准化"
+      - "医学数据质量审核"
+      - "临床与体检业务需求对接"
+      - "医学内容支持"
+    onboard_date: "2026-09-02"  # 入职日期
   - name_cn: "聂鑫"
     name_en: "xin nie"
     type: "兼职"

@@ -1,5 +1,6 @@
-# === 周五工时填写提醒 ===
-# 目标: 周五 9:00 在群里发本周工时提醒 (Markdown + @所有人)
+# === 本周最后工作日 工时填写提醒 ===
+# 目标: 本周最后一个工作日 9:00 在群里发本周工时提醒 (Markdown + @所有人)
+# 触发: dingtalk_reminder.yml 每天 cron + schedule_gate.py 判定最后工作日 (考虑节假日/调休)
 
 import os
 import time
@@ -8,6 +9,7 @@ import hashlib
 import base64
 import urllib.parse
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import requests
 from dotenv import load_dotenv
 
@@ -31,7 +33,9 @@ sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
 url = f"{WEBHOOK}&timestamp={timestamp}&sign={sign}"
 
 # --- Step 3: 当前周次 ---
-week_num = datetime.now().isocalendar()[1]
+now = datetime.now(ZoneInfo("Asia/Shanghai"))
+week_num = now.isocalendar()[1]
+weekday_cn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][now.weekday()]
 
 # --- Step 4: Markdown 消息正文 ---
 # 【请按你团队真实规则修改下面文案】
@@ -39,7 +43,7 @@ markdown_text = f"""## 📋 工时填写提醒 · 第 {week_num} 周
 
 @所有人
 
-各位伙伴周五好 👋
+各位伙伴{weekday_cn}好 👋
 
 请在 **今天中午 12:00 前** 完成本周工时登记。
 
@@ -58,7 +62,7 @@ markdown_text = f"""## 📋 工时填写提醒 · 第 {week_num} 周
 AI 会做初审, 主管对下属团队成员工时进行 2 次审核。
 
 **📊 预告**
-下午 14:00 会把本周工时分析 PPT 发到群里 ☕
+下午 13:00 周报生成后, 会把本周工时分析 PPT 发到群里 ☕
 
 如有疑问群里 @胡若玫 即可
 """

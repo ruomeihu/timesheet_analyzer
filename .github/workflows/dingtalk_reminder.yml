@@ -2,8 +2,10 @@ name: Dingtalk Friday Reminder
 
 on:
   schedule:
-    - cron: '0 0 * * 5'  # UTC 00:00 = 北京时间 08:00 周五（提前 1h 抵消 GitHub schedule 延迟，使提醒在 9:00 前送达）
-  workflow_dispatch:       # 支持手动触发
+    # 每天 UTC 00:00 = 北京时间 08:00 触发（提前 1h 抵消 GitHub schedule 延迟，使提醒在 9:00 前送达），
+    # 由 schedule_gate.py 判定今天是否为「本周最后工作日」（考虑法定节假日与调休）
+    - cron: '0 0 * * *'
+  workflow_dispatch:       # 支持手动触发（跳过门控）
 
 jobs:
   notify:
@@ -17,9 +19,20 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - run: pip install requests python-dotenv
+      - run: pip install requests python-dotenv pyyaml
+
+      - name: Holiday gate
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python schedule_gate.py reminder
+          else
+            echo "手动触发，跳过门控"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Send Dingtalk reminder
+        if: steps.gate.outputs.should_run == 'true'
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}

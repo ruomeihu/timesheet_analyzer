@@ -1,6 +1,7 @@
-# === 周五工时分析周报钉钉推送 ===
-# 目标: 周五 14:00 把本周工时分析 PPT 链接 + 关键数据推到群里 (Markdown + @所有人)
-# 数据来源: reports/report_YYYYMMDD.json sidecar (由 13:00 cron 生成)
+# === 工时分析周报钉钉推送 ===
+# 目标: 本周最后工作日周报生成后, 把本周工时分析 PPT 链接 + 关键数据推到群里 (Markdown + @所有人)
+# 触发: weekly_report.yml 的 push job (紧跟 generate); dingtalk_report_push.yml 仅供手动重发
+# 数据来源: reports/report_YYYYMMDD.json sidecar (文件名固定为本周周五日期)
 
 import base64
 import hashlib
@@ -10,6 +11,7 @@ import os
 import time
 import urllib.parse
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import requests
@@ -17,6 +19,11 @@ from dotenv import load_dotenv
 
 
 REPORTS_DIR = Path(__file__).parent / "reports"
+
+
+def _today_weekday_cn() -> str:
+    """北京时间今天星期几（推送跟随本周最后工作日，不一定是周五）"""
+    return ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][datetime.now(ZoneInfo("Asia/Shanghai")).weekday()]
 
 
 def get_reference_date() -> datetime:
@@ -122,7 +129,7 @@ def build_success_markdown(sidecar: dict, week_num: int) -> str:
 
 @所有人
 
-各位伙伴周五下午好 ☕
+各位伙伴{_today_weekday_cn()}下午好 ☕
 
 本周工时分析已就位 。**📌 这周大家把时间花在哪了**
 

@@ -2,14 +2,46 @@ name: Weekly Timesheet Report
 
 on:
   schedule:
-    - cron: '0 5 * * 5'  # UTC 05:00 = 北京时间 13:00 每周五
-  workflow_dispatch:       # 支持手动触发
+    # 每天 UTC 05:00 = 北京时间 13:00 触发，由 schedule_gate.py 判定是否为「本周最后工作日」
+    # （考虑法定节假日与调休，最后工作日可能是周四或调休的周六/周日）；本周已生成则跳过
+    - cron: '0 5 * * *'
+  workflow_dispatch:       # 支持手动触发（跳过门控，直接生成）
+    inputs:
+      push_dingtalk:
+        description: '生成后推送钉钉群（仅重生报告不打扰群时取消勾选）'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.gate.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install pyyaml
+
+      - name: Holiday gate
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python schedule_gate.py report
+          else
+            echo "手动触发，跳过门控"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   generate:
+    needs: gate
+    if: needs.gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,3 +69,26 @@ jobs:
           git add reports/
           git diff --cached --quiet || git commit -m "Weekly report $(date +%Y-%m-%d)"
           git push
+
+  # 周报生成后立即推送钉钉（生成失败也推送，走兜底分支 @胡若玫）
+  push:
+    needs: [gate, generate]
+    if: ${{ !cancelled() && needs.gate.outputs.should_run == 'true' && (github.event_name == 'schedule' || inputs.push_dingtalk) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}   # 拉取 generate 刚提交的 sidecar，而非触发时的旧 commit
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install requests python-dotenv
+
+      - name: Push timesheet report to Dingtalk
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: python dingtalk_report_push.py

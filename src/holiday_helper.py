@@ -100,6 +100,16 @@ class HolidayHelper:
         
         return workdays
     
+    def count_workdays(self, start_date: date, end_date: date) -> int:
+        """统计 [start_date, end_date]（含两端）内的工作日天数（含调休工作日）"""
+        count = 0
+        current = start_date
+        while current <= end_date:
+            if self.is_workday(current):
+                count += 1
+            current += timedelta(days=1)
+        return count
+
     def get_week_standard_hours(
         self, 
         year: int, 

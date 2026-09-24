@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import get_employees_config
-from src.holiday_helper import HolidayHelper
+from src.holiday_helper import HolidayHelper, get_helper as get_holiday_helper
 
 
 def preprocess_data(
@@ -300,10 +300,10 @@ def get_employee_leaves(
                 
                 # 检查是否与查询期间重叠
                 if leave_start <= end_date and leave_end >= start_date:
-                    # 计算在查询期间内的请假天数
+                    # 计算在查询期间内的请假天数（只计工作日，跨周末/法定假日不多扣）
                     actual_start = max(leave_start, start_date)
                     actual_end = min(leave_end, end_date)
-                    days = (actual_end - actual_start).days + 1
+                    days = get_holiday_helper().count_workdays(actual_start, actual_end)
                     
                     filtered.append({
                         'start': actual_start,

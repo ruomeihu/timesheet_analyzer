@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import get_employees_config
+from src.holiday_helper import get_helper as get_holiday_helper
 
 
 @dataclass
@@ -329,13 +330,18 @@ class AIAnalyzer:
                 'priority': p.priority
             })
 
+        # 本周工作日历（调休/法定假日），供 LLM 判定加班与缺勤
+        df_period = df[df['周期类型'] == period].copy()
+        holiday_helper = get_holiday_helper()
+        work_calendar = self._build_work_calendar(df_period, holiday_helper)
+
         # 原始条目详情（用于深度分析）
         raw_entries = []
-        df_period = df[df['周期类型'] == period].copy()
         for _, row in df_period.iterrows():
             entry = {
                 'date': str(row['日期_date']),
                 'weekday': row.get('星期', ''),
+                'day_type': holiday_helper.get_day_type(row['日期_date']),
                 'member': row['成员_中文'],
                 'project': row['项目名称_清理'],
                 'project_content': row.get('项目内容', ''),
@@ -366,7 +372,23 @@ class AIAnalyzer:
             'project_stats': project_stats,
             'raw_entries': raw_entries,
             'fragmentation': fragmentation_data,
-            'project_categories': self.config.get('project_categories', {})
+            'project_categories': self.config.get('project_categories', {}),
+            'work_calendar': work_calendar
+        }
+
+    def _build_work_calendar(self, df_period: pd.DataFrame, holiday_helper) -> Optional[Dict]:
+        """构建分析周的工作日历（与 analyzer.py 一致：取 period 数据所在 ISO 周）"""
+        if len(df_period) == 0 or '日期_date' not in df_period.columns:
+            return None
+        sample_date = df_period['日期_date'].iloc[0]
+        days = holiday_helper.get_week_calendar(sample_date)
+        workday_count = sum(1 for d in days if d['day_type'] in ('工作日', '调休工作日'))
+        daily_hours = self.config.get('defaults', {}).get('daily_hours', 8)
+        return {
+            'days': days,
+            'as_of': date.today().isoformat(),  # 数据截至日：之后的日期尚未到来
+            'workday_count': workday_count,
+            'full_time_standard_hours': workday_count * daily_hours,
         }
 
     def _calculate_fragmentation(self, df: pd.DataFrame) -> Dict:
@@ -425,7 +447,7 @@ class AIAnalyzer:
 9. **跨部门支持成本** - 帮助其他部门的时间投入
 
 ### 快速扫视框架（15分钟审视）
-- **异常值**：工时极低（<30h）或极高（>60h）的全职人员
+- **异常值**：工时明显低于（<75%）或高于（>150%）其调整后标准工时（member_stats.standard_hours）的全职人员
 - **核心项目**：本周最重要项目投入是否足够
 - **黑洞时间**："其他"、"行政"、"会议"占比是否过高
 
@@ -484,6 +506,17 @@ class AIAnalyzer:
 - **description**: 具体的工作内容描述
 - **attribute**: 项目属性
 - **stage**: 工作阶段
+- **day_type**: 当天的日历类型——`工作日` / `调休工作日` / `法定假日` / `周末`
+
+## 日历与出勤判定规则（必须遵守）
+
+用户提示中的「本周工作日历」已按中国法定节假日和调休安排计算好，判断加班、缺勤、工时高低时必须以它为准：
+
+1. `调休工作日`（例如为国庆调休而上班的周日）是**正常工作日**，当天有工时属于正常出勤，**不是加班**，也不是周末工作
+2. 只有 `法定假日` 或 `周末` 当天的工时才可视为加班 / 非工作时间投入
+3. `法定假日` 当天没有工时是正常休假，**不是缺勤**；不要因为本周工作日少于 5 天就认为成员缺勤或工时不足
+4. 「本周工作日历」中标注**尚未到来**的日期，缺少工时记录不代表缺勤
+5. 判断个人工时高低一律以 `member_stats` 中的 `standard_hours` 和 `achievement_rate` 为准——它们已按本周工作日数、请假、入职日期调整过；**不要按「每周 40 小时 / 5 天」推算**
 
 请特别关注 `project_content` 字段，它提供了比项目名称更具体的内容信息，有助于判断工作的战略价值、工作性质和资源分配合理性。
 
@@ -517,6 +550,8 @@ class AIAnalyzer:
 - 部门：{data['department'].get('name', '未知')}
 - 部门职责：{data['department'].get('responsibilities', '未知')}
 
+{self._format_work_calendar(data.get('work_calendar'))}
+
 ## 团队概览
 - 总工时：{data['summary']['total_hours']} 小时
 - 工作天数：{data['summary']['working_days']} 天
@@ -543,6 +578,33 @@ class AIAnalyzer:
 {json.dumps(raw_entries, ensure_ascii=False, indent=2)}
 
 请根据以上数据，按照系统提示中的分析框架进行深度分析，并以 JSON 格式输出结果。"""
+
+    @staticmethod
+    def _format_work_calendar(calendar: Optional[Dict]) -> str:
+        """把工作日历渲染成 user prompt 段落"""
+        if not calendar:
+            return "## 本周工作日历\n（无日历信息）"
+        lines = [
+            "## 本周工作日历",
+            f"- 本周共 **{calendar['workday_count']} 个工作日**，"
+            f"全职标准工时 **{calendar['full_time_standard_hours']} 小时**（已考虑法定节假日与调休）",
+        ]
+        special = [d for d in calendar['days'] if d['day_type'] in ('调休工作日', '法定假日')]
+        if special:
+            lines.append("- 特殊日期：")
+            for d in special:
+                note = "需上班，属正常工作日" if d['day_type'] == '调休工作日' else "放假，无工时属正常"
+                lines.append(f"  - {d['date']}（{d['weekday']}）{d['name']} · {d['day_type']}：{note}")
+        else:
+            lines.append("- 本周无法定节假日或调休，周一至周五为工作日")
+        as_of = calendar.get('as_of')
+        future = [d for d in calendar['days']
+                  if as_of and d['date'] > as_of and d['day_type'] in ('工作日', '调休工作日')]
+        if future:
+            dates = "、".join(f"{d['date']}（{d['weekday']}）" for d in future)
+            lines.append(f"- 数据截至 {as_of}：{dates} 尚未到来，这些日期的工时仅为部分成员预填的计划，"
+                         f"未填写**不代表缺勤**，不要据此判断出勤或工时偏低")
+        return "\n".join(lines)
 
     def _call_claude(self, system_prompt: str, user_prompt: str) -> tuple:
         """调用 Claude API，返回 (text, stop_reason)"""
@@ -788,12 +850,12 @@ class AIAnalyzer:
                         'concern': f'全职员工本周仅 {m.total_hours} 小时，标准工时为 {m.standard_hours} 小时'
                     })
                     action_items.append(f"关注 {m.name} 的工时情况，了解原因")
-                elif m.total_hours > 60:
+                elif m.total_hours > m.standard_hours * 1.5:
                     anomalies.append({
                         'type': '工时过高',
                         'member': m.name,
-                        'value': f'{m.total_hours}h',
-                        'concern': f'本周工时达 {m.total_hours} 小时，可能存在过度加班'
+                        'value': f'{m.total_hours}h（标准 {m.standard_hours}h）',
+                        'concern': f'本周工时达 {m.total_hours} 小时，超过标准工时 {m.standard_hours} 小时的 150%，可能存在过度加班'
                     })
                     action_items.append(f"关注 {m.name} 的工作负荷，考虑资源调配")
 

@@ -29,6 +29,8 @@ python dingtalk_report_push.py
 # 测试
 python test_spring_festival_weeks.py          # 节假日逻辑测试
 python test_github_sync.py                    # 请假 GitHub 同步测试（mock，无需 token）
+python test_holiday_calendar.py               # 节假日日历 + 请假工作日计数 + 定时门控测试
+python schedule_gate.py report --date 2026-09-24   # 手动查看门控判定
 NOTION_API_TOKEN=xxx python test_notion_connection.py  # Notion 连接测试
 
 # 语法检查（无 lint 工具配置）
@@ -43,9 +45,10 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 
 - `app.py` — Streamlit Web 前端（8 个 tab），支持三种数据源：预生成报告 / Notion 直连 / CSV 上传。首页双入口：「🏖️ 请假登记」（`app_mode='leave'` 独立模式，免加载数据秒开）和「📊 工时分析」（原有流程）。请假表单 `render_leave_form` 由独立请假页与 Tab 7 复用，提交成功后 `st.rerun()` 让已加载分析即时按新请假重算达成率
 - `main.py` — 命令行入口，读 CSV 输出报告+图表
-- `auto_weekly_report.py` — 定时任务入口，从 Notion 拉数据 → 分析 → 可选邮件通知。邮件 **opt-in**（`CONFIG.email.enabled` 默认 False，仅 `--email` 时发；CI `weekly_report.yml` 已显式传 `--email`）。默认输出目录是 `~/Documents/MIH_Reports`，CI/本地重生靠 `--output-dir ./reports`。GitHub Actions 每周五北京时间 13:00 自动运行
-- `dingtalk_reminder.py` — 周五 9:00 钉钉群提醒填工时，无数据依赖。Workflow: `.github/workflows/dingtalk_reminder.yml`
-- `dingtalk_report_push.py` — 周五 14:00 钉钉群推送本周工时分析周报，读 `reports/report_YYYYMMDD.json` sidecar 的 `weekStats` + `gammaUrl`。sidecar 缺失/字段不全 → 走兜底分支并 @胡若玫。Workflow: `.github/workflows/dingtalk_report_push.yml`
+- `auto_weekly_report.py` — 定时任务入口，从 Notion 拉数据 → 分析 → 可选邮件通知。邮件 **opt-in**（`CONFIG.email.enabled` 默认 False，仅 `--email` 时发；CI `weekly_report.yml` 已显式传 `--email`）。默认输出目录是 `~/Documents/MIH_Reports`，CI/本地重生靠 `--output-dir ./reports`。GitHub Actions 在**本周最后一个工作日**北京时间 13:00 自动运行（见下方 schedule_gate）
+- `dingtalk_reminder.py` — 本周最后工作日 9:00 钉钉群提醒填工时，无数据依赖，问候语按北京时间动态星期。Workflow: `.github/workflows/dingtalk_reminder.yml`
+- `dingtalk_report_push.py` — 周报生成后立即推送钉钉群，读 `reports/report_YYYYMMDD.json` sidecar 的 `weekStats` + `gammaUrl`。sidecar 缺失/字段不全 → 走兜底分支并 @胡若玫。定时推送是 `weekly_report.yml` 的 `push` job（紧跟 `generate`，生成失败也推兜底）；`dingtalk_report_push.yml` 仅保留手动重发
+- `schedule_gate.py` — 定时任务节假日门控。reminder / weekly_report 的 cron 每天触发，由它按 `holidays.yaml` 判定：reminder 仅在本周最后工作日跑；report 在「今天 >= 本周最后工作日（同 ISO 周）且本周 sidecar 未生成」时跑（cron 延迟跨午夜可补跑、失败次日自动重试）。最后工作日可能是周四（周五放假）或调休的周六/周日。手动 `workflow_dispatch` 跳过门控；weekly_report 手动触发有 `push_dingtalk` 开关，仅重生不想打扰群时取消勾选。⚠️ 不要把推送改回 `workflow_run` 触发——门控跳过的 run 结论仍是 success，会每天误发兜底 @
 
 ### 核心模块 (`src/`)
 
@@ -67,7 +70,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 ### 配置 (`config/`)
 
 - `employees.yaml` — 员工列表（中英文名、类型、标准工时、入职日期 onboard_date、离职日期 offboard_date、请假记录）+ 全局默认值（阈值、AI 模型配置）+ 项目分类关键词
-- `holidays.yaml` — 中国法定节假日，type: `holiday`（放假）或 `workday`（调休上班）
+- `holidays.yaml` — 中国法定节假日，type: `holiday`（放假）或 `workday`（调休上班）。⚠️ **每年国务院发布次年放假安排后（通常 11 月）必须录入次年数据**——缺失时调休日被当普通周末、假日被当工作日，标准工时、AI 洞察、定时任务触发日会同时出错
 - `__init__.py` — `get_employees_config()` / `get_holidays_config()` 加载 YAML
 
 ### 周期判定逻辑
@@ -88,6 +91,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - `@st.cache_data` 用于缓存数据加载，Notion 直连 TTL=300 秒
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`
 - `reference_date` in `app.py` is independent of the "预生成报告" CSV picker. When matching dated artifacts (e.g., `reports/report_YYYYMMDD.json` sidecar), match by ISO week not exact date — derive Monday-of-week from both sides.
+- AI 深度分析的日历感知：`ai_analyzer.py:_build_work_calendar` 把本周逐日 `day_type`（工作日/调休工作日/法定假日/周末）、工作日数、全职标准工时、数据截至日 `as_of` 注入 user prompt，每条 raw_entry 也带 `day_type`；system prompt「日历与出勤判定规则」规定调休日上班不算加班、假日无工时不算缺勤、`as_of` 之后的日期不判出勤、工时高低以调整后 `standard_hours` 为准。请假 `leave_days` 只计工作日（`HolidayHelper.count_workdays`）
 - AI 深度分析默认从 sidecar 复用,不调 Claude API。仅当用户在 Tab 6 勾选「🔁 强制重跑 AI 深度分析」时才重跑。新增/删除 `ai_insights` session_state 时同步处理 `ai_insights_source` 标签
 - PPT/PDF 下载文件名固定为 `工时分析周报_数据平台部_YYYYMMDD.pdf`(Streamlit Tab 6 下载按钮 + 邮件附件),日期取 `reference_date` / `ref_date`
 - `send_email(attachments=...)` 支持 `str` 或 `(path, display_name)` 元组;中文文件名走 RFC 2231 `filename*=utf-8''…` 头(已在 `auto_weekly_report.py:send_email` 内部封装)

@@ -100,8 +100,56 @@ class HolidayHelper:
         
         return workdays
     
+    def count_workdays(self, start_date: date, end_date: date) -> int:
+        """统计 [start_date, end_date]（含两端）内的工作日天数（含调休工作日）"""
+        count = 0
+        current = start_date
+        while current <= end_date:
+            if self.is_workday(current):
+                count += 1
+            current += timedelta(days=1)
+        return count
+
+    def get_day_type(self, d: date) -> str:
+        """日期类型：工作日 / 调休工作日 / 法定假日 / 周末"""
+        info = self._holidays.get(d)
+        if info:
+            return '调休工作日' if info['type'] == 'workday' else '法定假日'
+        return '周末' if d.weekday() >= 5 else '工作日'
+
+    def get_week_calendar(self, d: date) -> List[Dict]:
+        """
+        获取 d 所在 ISO 周（周一至周日）的逐日日历
+
+        Returns
+        -------
+        List[dict]
+            每天 {date, weekday, day_type, name}，name 为节假日/调休名称（普通日为空）
+        """
+        monday = d - timedelta(days=d.weekday())
+        calendar = []
+        for i in range(7):
+            day = monday + timedelta(days=i)
+            info = self._holidays.get(day)
+            calendar.append({
+                'date': day.isoformat(),
+                'weekday': ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][i],
+                'day_type': self.get_day_type(day),
+                'name': info['name'] if info else '',
+            })
+        return calendar
+
+    def get_last_workday_of_week(self, d: date) -> Optional[date]:
+        """d 所在 ISO 周的最后一个工作日（可能是调休的周六/周日）；整周放假返回 None"""
+        monday = d - timedelta(days=d.weekday())
+        for i in range(6, -1, -1):
+            day = monday + timedelta(days=i)
+            if self.is_workday(day):
+                return day
+        return None
+
     def get_week_standard_hours(
-        self, 
+        self,
         year: int, 
         week_num: int,
         daily_hours: float = 8.0

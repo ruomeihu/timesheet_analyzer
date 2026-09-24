@@ -6,7 +6,7 @@
 
 - **6 个分析维度**：人员分析、项目分析、可视化图表、下周安排、AI 深度分析、报告下载
 - **3 种数据源**：预生成报告（秒开）、Notion 直连（实时）、CSV 上传（手动）
-- **自动化周报**：GitHub Actions 每周五 13:00（北京时间）自动生成
+- **自动化周报**：GitHub Actions 在每周最后一个工作日 13:00（北京时间，按 `config/holidays.yaml` 自动识别节假日/调休）自动生成，随后推送钉钉
 - **AI 深度分析**：Claude API 驱动的四维度十指标分析
 - **移动端友好**：手机浏览器打开即用
 
@@ -32,12 +32,17 @@ timesheet_analyzer/
 │   └── holiday_helper.py            # 节假日助手：处理调休
 ├── reports/                         # GitHub Actions 自动生成的周报
 ├── .github/workflows/
-│   └── weekly_report.yml            # 定时任务：每周五自动生成报告
+│   ├── weekly_report.yml            # 定时任务：每周最后工作日生成报告 + 推送钉钉
+│   ├── dingtalk_reminder.yml        # 定时任务：每周最后工作日 9:00 提醒填工时
+│   └── dingtalk_report_push.yml     # 手动重发钉钉周报推送
 ├── .streamlit/
 │   └── secrets.toml.example         # Streamlit Cloud secrets 模板
 ├── app.py                           # Streamlit Web 前端
 ├── main.py                          # 命令行入口
 ├── auto_weekly_report.py            # 自动化周报脚本
+├── schedule_gate.py                 # 定时任务门控：判定是否为本周最后工作日
+├── dingtalk_reminder.py             # 钉钉填报提醒
+├── dingtalk_report_push.py          # 钉钉周报推送
 └── requirements.txt                 # Python 依赖
 ```
 
@@ -84,7 +89,7 @@ python auto_weekly_report.py --output-dir ./reports
 
 ### GitHub Actions 定时任务
 
-每周五北京时间 13:00 自动从 Notion 拉取数据、生成报告、提交到 `reports/` 目录。
+每天北京时间 13:00 触发，由 `schedule_gate.py` 判定：仅在本周最后一个工作日（周五放假则提前到周四，调休上班的周六/周日也算）从 Notion 拉取数据、生成报告、提交到 `reports/` 目录，随后立即推送钉钉群。本周已生成则跳过，cron 延迟跨午夜可补跑。
 
 需要在仓库 Settings → Secrets → Actions 中配置：
 
@@ -94,7 +99,7 @@ python auto_weekly_report.py --output-dir ./reports
 | `ANTHROPIC_API_KEY` | Claude AI 深度分析（可选） |
 | `MAIL_SENDER` | 126 邮箱授权码，用于发送周报（可选） |
 | `GAMMA_API_KEY` | Gamma Pro+ key，生成在线 PPT（可选） |
-| `DINGTALK_WEBHOOK` / `DINGTALK_SECRET` | 钉钉机器人，用于周五提醒 + 周报推送 |
+| `DINGTALK_WEBHOOK` / `DINGTALK_SECRET` | 钉钉机器人，用于最后工作日的填报提醒 + 周报推送 |
 
 也可以随时手动触发：Actions → Weekly Timesheet Report → Run workflow。
 

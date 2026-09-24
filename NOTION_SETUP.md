@@ -232,7 +232,7 @@ echo $NOTION_API_TOKEN
 
 设置完成后，你可以：
 
-1. **自动化周报**：创建定时任务每周五自动导出分析
+1. **自动化周报**：GitHub Actions 每周最后一个工作日自动导出分析（节假日感知）
 2. **集成到 Streamlit**：在 Web 界面添加"从 Notion 导入"按钮
 3. **实时同步**：使用 Notion Webhooks 实现数据变更自动同步
 

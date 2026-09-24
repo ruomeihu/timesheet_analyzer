@@ -1,5 +1,7 @@
 # 🕐 Mac 定时任务设置指南
 
+> ⚠️ **生产环境的周报由 GitHub Actions 运行**（`.github/workflows/weekly_report.yml`），会按 `config/holidays.yaml` 自动在**每周最后一个工作日**执行（节假日/调休感知，见 `schedule_gate.py`）。本指南的本机定时任务是早期方案，只能固定在周五，遇到周五放假不会自动调整，仅作本地备用。
+
 本指南帮你设置每周五下午 1 点自动运行工时分析。
 
 ---

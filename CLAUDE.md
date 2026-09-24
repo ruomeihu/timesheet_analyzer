@@ -57,7 +57,7 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - **analyzer.py** — `TimesheetAnalyzer(df)` 核心分析引擎。返回 `MemberAnalysis` 和 `ProjectAnalysis` dataclass。状态判定阈值：超负荷 >1.2x 标准工时，偏低 <0.7x。标准工时会根据节假日和请假自动调整
 - **ai_analyzer.py** — Claude API 深度分析（4 维度 10 指标）。`generate_quick_scan()` 是纯本地规则计算，不调 API。`analyze()` 调用 Claude API 返回 `AIInsightResult`。模型/max_tokens/effort 在 `config/employees.yaml` 的 `defaults.ai_analysis` 配置（当前模型 `claude-sonnet-4-6`，由 `_load_ai_config()` 读取，**无 `CLAUDE_MODEL` 等环境变量覆盖**——升级模型改这一处即可，dataclass 默认值和 `.get()` 兜底值同步即可）。⚠️ **不要给 `messages.create()` 加回 `temperature`/`top_p`/`top_k`**——anthropic SDK 1.x 已移除这些参数（2026-08 曾因此 CI 连续两周静默失败）
 - **notion_connector.py** — `NotionConnector` 封装 Notion API（2025-09-03 版本，使用 data_sources 端点）。`fetch_timesheet(start, end)` 返回与 CSV 格式一致的 DataFrame
-- **github_sync.py** — `push_leave_to_github()` 把请假记录经 GitHub Contents API 直接 commit 到仓库 main 的 `config/employees.yaml`（安全写路径：GET 仓库最新内容 → `config.add_leave_to_yaml_text` 纯变换 → 带 sha PUT，冲突自动重拉重试一次，成功后回写本地文件）。解决 Streamlit Cloud 文件系统易失、周五 CI 看不到前端录入请假的问题。⚠️ 请假数据直接 commit main 是**设计行为**（产品数据），区别于代码改动必须走 feature branch + PR 的约定。⚠️ 前端提交按钮被连点会产生两条相同 leaves 记录 + 两个 commit（重复请假会双倍扣减标准工时、虚高达成率）——用户报请假后核对 `config/employees.yaml`，重复则删一条直接提交 main
+- **github_sync.py** — `push_leave_to_github()` 把请假记录经 GitHub Contents API 直接 commit 到仓库 main 的 `config/employees.yaml`（安全写路径：GET 仓库最新内容 → `config.add_leave_to_yaml_text` 纯变换 → 带 sha PUT，冲突自动重拉重试一次，成功后回写本地文件）。解决 Streamlit Cloud 文件系统易失、周报 CI 看不到前端录入请假的问题。⚠️ 请假数据直接 commit main 是**设计行为**（产品数据），区别于代码改动必须走 feature branch + PR 的约定。⚠️ 前端提交按钮被连点会产生两条相同 leaves 记录 + 两个 commit（重复请假会双倍扣减标准工时、虚高达成率）——用户报请假后核对 `config/employees.yaml`，重复则删一条直接提交 main
 - **visualizer.py** — matplotlib 图表生成，`create_visualizations()` 生成组合图，`create_single_chart()` 生成单图
 - **report_generator.py** — `generate_markdown_report()` 生成 Markdown 报告，支持 next_week 和 ai_insights 可选参数
 
@@ -92,6 +92,8 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - GitHub Actions 生成的报告提交到 `reports/` 目录，文件名格式 `timesheet_YYYYMMDD.csv` / `report_YYYYMMDD.md`
 - `reference_date` in `app.py` is independent of the "预生成报告" CSV picker. When matching dated artifacts (e.g., `reports/report_YYYYMMDD.json` sidecar), match by ISO week not exact date — derive Monday-of-week from both sides.
 - AI 深度分析的日历感知：`ai_analyzer.py:_build_work_calendar` 把本周逐日 `day_type`（工作日/调休工作日/法定假日/周末）、工作日数、全职标准工时、数据截至日 `as_of` 注入 user prompt，每条 raw_entry 也带 `day_type`；system prompt「日历与出勤判定规则」规定调休日上班不算加班、假日无工时不算缺勤、`as_of` 之后的日期不判出勤、工时高低以调整后 `standard_hours` 为准。请假 `leave_days` 只计工作日（`HolidayHelper.count_workdays`）
+- 周报产物文件名**固定用本周周五的日期**（`auto_weekly_report.get_week_dates` / `dingtalk_report_push.get_reference_date` / `schedule_gate.sidecar_path_for` 三处对齐），与实际运行日无关——周四跑出的是 `report_20260925.*`，但 CI commit 信息是运行日 `Weekly report 2026-09-24`，查找产物按 ISO 周而非 commit 日期。改命名规则必须三处同改，否则门控判不出「已生成」会每天重跑周报+发邮件
+- 节假日相关 AI 判定的已知表现（2026-09-24 验证）：成员在**尚未到来的法定假日**预填计划工时（如中秋 9/27 预填 8h），AI 会按规则判为「假日加班」——这是数据问题不是 bug，让本人改日期即可。门控跑在最后工作日 13:00，当天下午工时不在统计内，属既有口径
 - AI 深度分析默认从 sidecar 复用,不调 Claude API。仅当用户在 Tab 6 勾选「🔁 强制重跑 AI 深度分析」时才重跑。新增/删除 `ai_insights` session_state 时同步处理 `ai_insights_source` 标签
 - PPT/PDF 下载文件名固定为 `工时分析周报_数据平台部_YYYYMMDD.pdf`(Streamlit Tab 6 下载按钮 + 邮件附件),日期取 `reference_date` / `ref_date`
 - `send_email(attachments=...)` 支持 `str` 或 `(path, display_name)` 元组;中文文件名走 RFC 2231 `filename*=utf-8''…` 头(已在 `auto_weekly_report.py:send_email` 内部封装)
@@ -104,13 +106,13 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 All read via `os.getenv()` (Streamlit also accepts `st.secrets`):
 
 - `NOTION_API_TOKEN` — required for Notion API
-- `GITHUB_TOKEN` — fine-grained PAT（仅本仓库 Contents 读写权限），前端请假登记同步到仓库 main 用；missing → 仅写本地 yaml 并提示（云端环境重启会丢）。需配到 **Streamlit Cloud Secrets**（周五 CI 不需要它，CI 用 Actions 自带 token）。可选 `GITHUB_REPO` 覆盖默认仓库 `ruomeihu/timesheet_analyzer`
+- `GITHUB_TOKEN` — fine-grained PAT（仅本仓库 Contents 读写权限），前端请假登记同步到仓库 main 用；missing → 仅写本地 yaml 并提示（云端环境重启会丢）。需配到 **Streamlit Cloud Secrets**（周报 CI 不需要它，CI 用 Actions 自带 token）。可选 `GITHUB_REPO` 覆盖默认仓库 `ruomeihu/timesheet_analyzer`
 - `ANTHROPIC_API_KEY` — Claude AI deep analysis; missing → graceful skip
 - `MAIL_SENDER` — 126 邮箱授权码 (not login password); missing → email skipped
 - `GAMMA_API_KEY` — Gamma Pro+ key for online PPT; missing → skip with warning
 - `DINGTALK_WEBHOOK` / `DINGTALK_SECRET` — 钉钉群机器人 webhook URL + 加签密钥；任一缺失 → `dingtalk_reminder.py` / `dingtalk_report_push.py` 抛 ValueError
 
-All of the above must also live in GitHub Actions secrets for the Friday CI workflows to use them.
+All of the above must also live in GitHub Actions secrets for the weekly CI workflows to use them.
 
 ## When Making Changes
 
@@ -135,10 +137,10 @@ All of the above must also live in GitHub Actions secrets for the Friday CI work
 
 ## Known Issues / Tech Debt
 
-- ⚠️ **AI 深度分析失败是静默的**（2026-09-04 踩坑）：`analyze()` 抛异常时 `auto_weekly_report.py` 优雅跳过，CI 仍显示 success，唯一可见症状是 sidecar `aiInsights: null` 和钉钉/报告缺 AI 段落——曾因 anthropic SDK 1.0 移除 `temperature` 而连续两周无人察觉。排查入口：`gh run view <id> --log | grep "AI 分析失败"`。预防：`requirements.txt` 依赖必须设上界（现 `anthropic>=1,<2`），CI 每周五装最新版，无上界=每周裸奔大版本
+- ⚠️ **AI 深度分析失败是静默的**（2026-09-04 踩坑）：`analyze()` 抛异常时 `auto_weekly_report.py` 优雅跳过，CI 仍显示 success，唯一可见症状是 sidecar `aiInsights: null` 和钉钉/报告缺 AI 段落——曾因 anthropic SDK 1.0 移除 `temperature` 而连续两周无人察觉。排查入口：`gh run view <id> --log | grep "AI 分析失败"`。预防：`requirements.txt` 依赖必须设上界（现 `anthropic>=1,<2`），CI 每周装最新版，无上界=每周裸奔大版本
 - ⚠️ **Streamlit Cloud 脏挂载 ImportError**（2026-06-11 踩坑）：连续多次 push main（如请假同步 + 还原 + 合并在几分钟内连发）会触发多次增量部署互相踩踏，云端挂载可能留下「部分文件新、部分文件旧」的混合状态——典型症状是莫名 `ImportError: cannot import name ...`（traceback 显示新代码行号、却找不到同仓库另一文件里的新名字），而 git 仓库本身完全正确。**再推空 commit 重部署无效，唯一修法：share.streamlit.io → 应用 ⋮ → Reboot app**。注意：现在每次前端请假提交都会产生一个 main commit 并触发云端重部署（活跃会话约 30-60s 后被重启、session_state 清空，属设计内接受的代价），所以这个坑将来可能复现，见 ImportError 先 Reboot 不用慌
 - [ ] Webhook notifications are coded but disabled (planned activation in Phase 3). Email is active via 126 SMTP (smtp.126.com:465 SSL) using `MAIL_SENDER` env var
-- [ ] CI `git add reports/` commits the Gamma PDF every Friday (~4 MB/week, ~200 MB/year). Consider git LFS or `.gitignore reports/*.pdf` (would break Streamlit Cloud's PDF download button)
+- [ ] CI `git add reports/` commits the Gamma PDF every week (~4 MB/week, ~200 MB/year). Consider git LFS or `.gitignore reports/*.pdf` (would break Streamlit Cloud's PDF download button)
 
 ## Gamma Integration
 

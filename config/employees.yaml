@@ -95,6 +95,11 @@ employees:
       - "商务支持"
       - "运营管理支持"
 
+    leaves:
+      - start: "2026-10-08"
+        end: "2026-10-08"
+        type: "年假"
+        note: "发烧生病"
   - name_cn: "张治宇"
     name_en: "Zander"
     type: "全职"

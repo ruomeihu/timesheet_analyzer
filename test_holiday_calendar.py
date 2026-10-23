@@ -11,11 +11,14 @@
   - HolidayHelper：get_day_type / get_week_calendar / get_last_workday_of_week / count_workdays
   - 请假天数只计工作日（get_employee_leaves）
   - schedule_gate.should_run：reminder / report 两种判定
+  - schedule_gate 在仅装 pyyaml 的 CI gate 环境下可运行
 
 使用方法：
   python test_holiday_calendar.py
 """
 
+import os
+import subprocess
 import sys
 import tempfile
 from datetime import date
@@ -95,6 +98,35 @@ def test_gate_report():
     print("✅ schedule_gate report")
 
 
+# 模拟 CI gate job 的环境：除标准库外只装了 pyyaml（2026-09 曾因 src/__init__ 拉起 pandas 而连续 4 周崩溃）
+_GATE_ONLY_DEPS = r'''
+import importlib.abc, runpy, sys
+ALLOWED = set(sys.stdlib_module_names) | {"yaml", "_yaml", "src", "config"}
+
+class _OnlyGateDeps(importlib.abc.MetaPathFinder):
+    def find_spec(self, name, path, target=None):
+        top = name.split(".")[0]
+        if top not in ALLOWED and not top.startswith("_sysconfigdata"):
+            raise ModuleNotFoundError(f"No module named {name!r} (CI gate 仅安装 pyyaml)")
+        return None
+
+sys.meta_path.insert(0, _OnlyGateDeps())
+sys.argv = ["schedule_gate.py"] + sys.argv[1:]
+runpy.run_path("schedule_gate.py", run_name="__main__")
+'''
+
+
+def test_gate_runs_with_only_pyyaml():
+    env = {k: v for k, v in os.environ.items() if k != "GITHUB_OUTPUT"}
+    for task in ("reminder", "report"):
+        r = subprocess.run(
+            [sys.executable, "-c", _GATE_ONLY_DEPS, task, "--date", "2026-10-23"],
+            cwd=ROOT, env=env, capture_output=True, text=True,
+        )
+        assert r.returncode == 0, f"schedule_gate {task} 在仅 pyyaml 环境下崩溃:\n{r.stderr}"
+    print("✅ schedule_gate 仅依赖 pyyaml（CI gate 环境）")
+
+
 if __name__ == "__main__":
     test_day_type()
     test_week_calendar()
@@ -102,4 +134,5 @@ if __name__ == "__main__":
     test_leave_counts_workdays_only()
     test_gate_reminder()
     test_gate_report()
+    test_gate_runs_with_only_pyyaml()
     print("\n全部通过")

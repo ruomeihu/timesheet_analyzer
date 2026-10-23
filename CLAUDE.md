@@ -29,7 +29,8 @@ python dingtalk_report_push.py
 # 测试
 python test_spring_festival_weeks.py          # 节假日逻辑测试
 python test_github_sync.py                    # 请假 GitHub 同步测试（mock，无需 token）
-python test_holiday_calendar.py               # 节假日日历 + 请假工作日计数 + 定时门控测试
+python test_holiday_calendar.py               # 节假日日历 + 请假工作日计数 + 定时门控测试（含仅 pyyaml 环境回归）
+python test_dingtalk_report_push.py           # 钉钉推送分支选择（完整/兜底/门控告警，不发网络请求）
 python schedule_gate.py report --date 2026-09-24   # 手动查看门控判定
 NOTION_API_TOKEN=xxx python test_notion_connection.py  # Notion 连接测试
 
@@ -47,8 +48,8 @@ python -c "import py_compile; py_compile.compile('app.py', doraise=True)"
 - `main.py` — 命令行入口，读 CSV 输出报告+图表
 - `auto_weekly_report.py` — 定时任务入口，从 Notion 拉数据 → 分析 → 可选邮件通知。邮件 **opt-in**（`CONFIG.email.enabled` 默认 False，仅 `--email` 时发；CI `weekly_report.yml` 已显式传 `--email`）。默认输出目录是 `~/Documents/MIH_Reports`，CI/本地重生靠 `--output-dir ./reports`。GitHub Actions 在**本周最后一个工作日**北京时间 13:00 自动运行（见下方 schedule_gate）
 - `dingtalk_reminder.py` — 本周最后工作日 9:00 钉钉群提醒填工时，无数据依赖，问候语按北京时间动态星期。Workflow: `.github/workflows/dingtalk_reminder.yml`
-- `dingtalk_report_push.py` — 周报生成后立即推送钉钉群，读 `reports/report_YYYYMMDD.json` sidecar 的 `weekStats` + `gammaUrl`。sidecar 缺失/字段不全 → 走兜底分支并 @胡若玫。定时推送是 `weekly_report.yml` 的 `push` job（紧跟 `generate`，生成失败也推兜底）；`dingtalk_report_push.yml` 仅保留手动重发
-- `schedule_gate.py` — 定时任务节假日门控。reminder / weekly_report 的 cron 每天触发，由它按 `holidays.yaml` 判定：reminder 仅在本周最后工作日跑；report 在「今天 >= 本周最后工作日（同 ISO 周）且本周 sidecar 未生成」时跑（cron 延迟跨午夜可补跑、失败次日自动重试）。最后工作日可能是周四（周五放假）或调休的周六/周日。手动 `workflow_dispatch` 跳过门控；weekly_report 手动触发有 `push_dingtalk` 开关，仅重生不想打扰群时取消勾选。⚠️ 不要把推送改回 `workflow_run` 触发——门控跳过的 run 结论仍是 success，会每天误发兜底 @
+- `dingtalk_report_push.py` — 周报生成后立即推送钉钉群，读 `reports/report_YYYYMMDD.json` sidecar 的 `weekStats` + `gammaUrl`。sidecar 缺失/字段不全 → 走兜底分支并 @胡若玫。定时推送是 `weekly_report.yml` 的 `push` job（紧跟 `generate`，生成失败也推兜底；gate job 崩溃时带 `--gate-failed` 只发门控告警，绝不重发完整周报）；`dingtalk_report_push.yml` 仅保留手动重发
+- `schedule_gate.py` — 定时任务节假日门控。reminder / weekly_report 的 cron 每天触发，由它按 `holidays.yaml` 判定：reminder 仅在本周最后工作日跑；report 在「今天 >= 本周最后工作日（同 ISO 周）且本周 sidecar 未生成」时跑（cron 延迟跨午夜可补跑、失败次日自动重试）。最后工作日可能是周四（周五放假）或调休的周六/周日。手动 `workflow_dispatch` 跳过门控；weekly_report 手动触发有 `push_dingtalk` 开关，仅重生不想打扰群时取消勾选。⚠️ 不要把推送改回 `workflow_run` 触发——门控跳过的 run 结论仍是 success，会每天误发兜底 @。⚠️ gate job 只装 `pyyaml`（reminder 另有 requests/dotenv），`schedule_gate.py` 的导入链（`src/__init__` → `holiday_helper` → `config`）**不能引入 pandas 等重依赖**——`src/__init__.py` 包级导出是惰性加载（PEP 562），勿改回顶层 import；本地有 pandas 测不出来，靠 `test_holiday_calendar.py` 的仅 pyyaml 子进程回归兜住
 
 ### 核心模块 (`src/`)
 
@@ -137,6 +138,7 @@ All of the above must also live in GitHub Actions secrets for the weekly CI work
 
 ## Known Issues / Tech Debt
 
+- ⚠️ **定时 gate 崩溃 4 周无人察觉**（2026-10-23 踩坑）：`e96827c` 引入 schedule_gate 后，gate job 因 `src/__init__` 连带 import pandas 而 `ModuleNotFoundError`，9/25–10/23 每天失败，周报/AI/邮件/钉钉提醒与推送全停（W40–W43 sidecar 缺失）。当天验证用的是手动触发（跳过门控）所以没暴露。已修：惰性导出 + 回归测试 + gate 失败钉钉告警。教训：**改定时 workflow 后必须看一次真实 `schedule` 触发的 run**（`gh run list --workflow weekly_report.yml --event schedule`），手动触发不等价
 - ⚠️ **AI 深度分析失败是静默的**（2026-09-04 踩坑）：`analyze()` 抛异常时 `auto_weekly_report.py` 优雅跳过，CI 仍显示 success，唯一可见症状是 sidecar `aiInsights: null` 和钉钉/报告缺 AI 段落——曾因 anthropic SDK 1.0 移除 `temperature` 而连续两周无人察觉。排查入口：`gh run view <id> --log | grep "AI 分析失败"`。预防：`requirements.txt` 依赖必须设上界（现 `anthropic>=1,<2`），CI 每周装最新版，无上界=每周裸奔大版本
 - ⚠️ **Streamlit Cloud 脏挂载 ImportError**（2026-06-11 踩坑）：连续多次 push main（如请假同步 + 还原 + 合并在几分钟内连发）会触发多次增量部署互相踩踏，云端挂载可能留下「部分文件新、部分文件旧」的混合状态——典型症状是莫名 `ImportError: cannot import name ...`（traceback 显示新代码行号、却找不到同仓库另一文件里的新名字），而 git 仓库本身完全正确。**再推空 commit 重部署无效，唯一修法：share.streamlit.io → 应用 ⋮ → Reboot app**。注意：现在每次前端请假提交都会产生一个 main commit 并触发云端重部署（活跃会话约 30-60s 后被重启、session_state 清空，属设计内接受的代价），所以这个坑将来可能复现，见 ImportError 先 Reboot 不用慌
 - [ ] Webhook notifications are coded but disabled (planned activation in Phase 3). Email is active via 126 SMTP (smtp.126.com:465 SSL) using `MAIL_SENDER` env var

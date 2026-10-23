@@ -3,6 +3,7 @@
 # 触发: weekly_report.yml 的 push job (紧跟 generate); dingtalk_report_push.yml 仅供手动重发
 # 数据来源: reports/report_YYYYMMDD.json sidecar (文件名固定为本周周五日期)
 
+import argparse
 import base64
 import hashlib
 import hmac
@@ -172,6 +173,30 @@ def build_fallback_markdown(week_num: int, reference_date: datetime) -> str:
 """
 
 
+def build_gate_failure_markdown(run_url: str) -> str:
+    return f"""## ⚠️ 工时周报定时任务异常
+
+@胡若玫
+
+今天的节假日门控 (schedule_gate.py) 运行崩溃, 周报生成被跳过。不修复则周报、AI 深度分析、邮件都不会自动产出。
+
+请人工排查:
+1. 查看本次运行日志: {run_url}
+2. 修复后手动触发 weekly_report workflow 补生成本周周报
+"""
+
+
+def build_message(sidecar, week_num: int, reference_date: datetime,
+                  gate_failed: bool = False, run_url: str = "") -> tuple:
+    """返回 (title, text, at_all)。gate 崩溃时只发告警, 即便本周 sidecar 已存在也不重发周报。"""
+    if gate_failed:
+        return "工时周报门控异常", build_gate_failure_markdown(run_url), False
+    if is_payload_valid(sidecar):
+        return f"工时周报 · 第 {week_num} 周", build_success_markdown(sidecar, week_num), True
+    return (f"工时周报推送失败 · 第 {week_num} 周",
+            build_fallback_markdown(week_num, reference_date), False)
+
+
 def sign_webhook(webhook: str, secret: str) -> str:
     timestamp = str(round(time.time() * 1000))
     string_to_sign = f"{timestamp}\n{secret}"
@@ -185,6 +210,11 @@ def sign_webhook(webhook: str, secret: str) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="工时周报钉钉推送")
+    parser.add_argument("--gate-failed", action="store_true",
+                        help="weekly_report 的 gate job 崩溃时由 CI 传入, 只发门控告警")
+    args = parser.parse_args()
+
     load_dotenv()
     webhook = os.getenv("DINGTALK_WEBHOOK")
     secret = os.getenv("DINGTALK_SECRET")
@@ -195,16 +225,11 @@ def main() -> None:
     week_num = reference_date.isocalendar()[1]
 
     sidecar = load_sidecar(reference_date)
-    valid = is_payload_valid(sidecar)
-
-    if valid:
-        text = build_success_markdown(sidecar, week_num)
-        title = f"工时周报 · 第 {week_num} 周"
-        at_all = True
-    else:
-        text = build_fallback_markdown(week_num, reference_date)
-        title = f"工时周报推送失败 · 第 {week_num} 周"
-        at_all = False
+    # GitHub Actions 自带的默认环境变量, 本地运行时为空
+    run_url = (f"{os.getenv('GITHUB_SERVER_URL', '')}/{os.getenv('GITHUB_REPOSITORY', '')}"
+               f"/actions/runs/{os.getenv('GITHUB_RUN_ID', '')}")
+    title, text, at_all = build_message(sidecar, week_num, reference_date,
+                                        gate_failed=args.gate_failed, run_url=run_url)
 
     signed_url = sign_webhook(webhook, secret)
     payload = {
@@ -217,7 +242,8 @@ def main() -> None:
     print(f"HTTP 状态码: {response.status_code}")
     print(f"钉钉返回: {response.json()}")
     print(f"\n📅 参考日期: {reference_date.strftime('%Y-%m-%d')} (第 {week_num} 周)")
-    print(f"📦 推送分支: {'✅ 完整周报' if valid else '⚠️ 兜底提示'}")
+    branch = "🚨 门控告警" if args.gate_failed else ("✅ 完整周报" if at_all else "⚠️ 兜底提示")
+    print(f"📦 推送分支: {branch}")
 
 
 if __name__ == "__main__":

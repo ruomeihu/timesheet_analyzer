@@ -71,9 +71,10 @@ jobs:
           git push
 
   # 周报生成后立即推送钉钉（生成失败也推送，走兜底分支 @胡若玫）
+  # gate 本身崩溃时推送门控告警（2026-09 曾因 gate 缺 pandas 连续 4 周崩溃、generate/push 全被跳过而无人察觉）
   push:
     needs: [gate, generate]
-    if: ${{ !cancelled() && needs.gate.outputs.should_run == 'true' && (github.event_name == 'schedule' || inputs.push_dingtalk) }}
+    if: ${{ !cancelled() && (needs.gate.result == 'failure' || (needs.gate.outputs.should_run == 'true' && (github.event_name == 'schedule' || inputs.push_dingtalk))) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -91,4 +92,4 @@ jobs:
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-        run: python dingtalk_report_push.py
+        run: python dingtalk_report_push.py ${{ needs.gate.result == 'failure' && '--gate-failed' || '' }}

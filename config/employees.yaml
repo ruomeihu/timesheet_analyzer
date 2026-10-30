@@ -202,6 +202,19 @@ employees:
       - "临床与体检业务需求对接"
       - "医学内容支持"
     onboard_date: "2026-09-02"  # 入职日期
+  - name_cn: "田继超"
+    name_en: "Raymon Land"
+    type: "全职"
+    standard_hours: 40
+    department: "数据平台部"
+    position: "算法工程师"
+    responsibilities:
+      - "算法模型设计与搭建"
+      - "数据探索与分析"
+      - "特征工程与数据处理"
+      - "模型评估与优化"
+      - "算法应用落地与技术研究"
+    onboard_date: "2026-10-19"
   - name_cn: "聂鑫"
     name_en: "xin nie"
     type: "兼职"

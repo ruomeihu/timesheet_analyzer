@@ -23,7 +23,9 @@ GENERATION_PARAMS = {
     "format": "presentation",
     "themeId": "gamma",
     "numCards": 14,
-    "folderIds": ["ucaeyffxew7c6a1"],
+    # 2026-11 Gamma 移除了数组形式的 folderIds (传了直接 400),改为单值 folderId,
+    # ID 带 fo_ 前缀 (取自 GET /v1.0/folders)
+    "folderId": "fo_ucaeyffxew7c6a1",
     "exportAs": "pdf",
     "textOptions": {"amount": "detailed", "language": "zh-cn"},
     "imageOptions": {"stylePreset": "illustration", "source": "aiGenerated"},
@@ -68,6 +70,9 @@ def generate_presentation(
             return None
     except requests.RequestException as e:
         print(f"❌ Gamma 创建任务失败: {e}")
+        # 打出 Gamma 的校验信息 (如 "property X should not exist"),接口变更时可直接定位字段
+        if getattr(e, "response", None) is not None:
+            print(f"   Gamma 响应: {e.response.text[:500]}")
         return None
 
     return _poll_until_done(generation_id, headers, poll_interval, timeout)

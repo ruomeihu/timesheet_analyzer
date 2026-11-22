@@ -141,6 +141,7 @@ All of the above must also live in GitHub Actions secrets for the weekly CI work
 - ⚠️ **定时 gate 崩溃 4 周无人察觉**（2026-10-23 踩坑）：`e96827c` 引入 schedule_gate 后，gate job 因 `src/__init__` 连带 import pandas 而 `ModuleNotFoundError`，9/25–10/23 每天失败，周报/AI/邮件/钉钉提醒与推送全停（W40–W43 sidecar 缺失）。当天验证用的是手动触发（跳过门控）所以没暴露。已修：惰性导出 + 回归测试 + gate 失败钉钉告警。教训：**改定时 workflow 后必须看一次真实 `schedule` 触发的 run**（`gh run list --workflow weekly_report.yml --event schedule`），手动触发不等价
 - ⚠️ **AI 深度分析失败是静默的**（2026-09-04 踩坑）：`analyze()` 抛异常时 `auto_weekly_report.py` 优雅跳过，CI 仍显示 success，唯一可见症状是 sidecar `aiInsights: null` 和钉钉/报告缺 AI 段落——曾因 anthropic SDK 1.0 移除 `temperature` 而连续两周无人察觉。排查入口：`gh run view <id> --log | grep "AI 分析失败"`。预防：`requirements.txt` 依赖必须设上界（现 `anthropic>=1,<2`），CI 每周装最新版，无上界=每周裸奔大版本
 - ⚠️ **Streamlit Cloud 脏挂载 ImportError**（2026-06-11 踩坑）：连续多次 push main（如请假同步 + 还原 + 合并在几分钟内连发）会触发多次增量部署互相踩踏，云端挂载可能留下「部分文件新、部分文件旧」的混合状态——典型症状是莫名 `ImportError: cannot import name ...`（traceback 显示新代码行号、却找不到同仓库另一文件里的新名字），而 git 仓库本身完全正确。**再推空 commit 重部署无效，唯一修法：share.streamlit.io → 应用 ⋮ → Reboot app**。注意：现在每次前端请假提交都会产生一个 main commit 并触发云端重部署（活跃会话约 30-60s 后被重启、session_state 清空，属设计内接受的代价），所以这个坑将来可能复现，见 ImportError 先 Reboot 不用慌
+- ⚠️ **Gamma 失败是静默的**（2026-11-20 踩坑）：`generate_presentation` 400/超时返回 None，CI 仍 success，唯一症状是钉钉兜底告警 @胡若玫、邮件无 PDF、Streamlit Tab 6 无 PPT。排查入口：`gh run view <id> --log | grep -A1 "Gamma 创建任务失败"`（下一行 `Gamma 响应:` 会给出被拒字段）。只读探测参数：`GET /v1.0/folders`、`GET /v1.0/themes`
 - [ ] Webhook notifications are coded but disabled (planned activation in Phase 3). Email is active via 126 SMTP (smtp.126.com:465 SSL) using `MAIL_SENDER` env var
 - [ ] CI `git add reports/` commits the Gamma PDF every week (~4 MB/week, ~200 MB/year). Consider git LFS or `.gitignore reports/*.pdf` (would break Streamlit Cloud's PDF download button)
 
@@ -150,4 +151,4 @@ All of the above must also live in GitHub Actions secrets for the weekly CI work
 
 `AIInsightResult` (de)serialization helpers live in `src/ai_analyzer.py`: `serialize_ai_insights()` / `deserialize_ai_insights()`. Pipeline-side wiring: `src/report_pipeline.py:render_report_artifacts` writes the field; `app.py` (data-load block) and the Tab 6 regen path read it.
 
-Gamma API quirks: `folderIds` is a JSON array (plural), `themeId` lowercase `d`, generation is async with polling at `GET /v1.0/generations/{id}`, embed URL = `gammaUrl.replace("/docs/", "/embed/")`.
+Gamma API quirks: folder 用单值 `folderId`（ID 带 `fo_` 前缀，取自 `GET /v1.0/folders`）——旧的数组 `folderIds` 已被 Gamma 移除，传了直接 400（2026-11-20 W47 踩坑），`themeId` lowercase `d`, generation is async with polling at `GET /v1.0/generations/{id}`, embed URL = `gammaUrl.replace("/docs/", "/embed/")`.

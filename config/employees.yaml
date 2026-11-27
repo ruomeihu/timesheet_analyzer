@@ -195,6 +195,9 @@ employees:
         end: "2026-10-26"
         type: "年假"
         note: "年假"
+      - start: "2026-11-24"
+        end: "2026-11-24"
+        type: "年假"
   - name_cn: "杨星"
     name_en: "杨星"              # Notion 账号为中文同名
     type: "全职"
